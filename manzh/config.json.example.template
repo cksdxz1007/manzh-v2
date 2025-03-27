@@ -1,0 +1,77 @@
+{
+  "services": {
+    "deepseek": {
+      "type": "deepseek",
+      "api_key": "your-deepseek-api-key-here",
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-chat",
+      "temperature": 0.3,
+      "max_tokens": 8192,
+      "top_p": 0.7,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0,
+      "timeout": 60,
+      "response_format": {
+        "type": "text"
+      }
+    },
+    "ollama": {
+      "type": "chatgpt",
+      "service": "ollama",
+      "api_key": "no-key-needed",
+      "url": "http://localhost:11434/v1/chat/completions",
+      "model": "qwen2.5:7b",
+      "language": "zh-CN",
+      "max_context_length": 4096,
+      "max_output_length": 2048
+    },
+    "siliconflow": {
+      "type": "chatgpt",
+      "service": "siliconflow",
+      "api_key": "your-siliconflow-api-key-here",
+      "url": "https://api.siliconflow.cn/v1/chat/completions",
+      "model": "deepseek-ai/DeepSeek-V3",
+      "language": "zh-CN",
+      "max_context_length": 65536,
+      "max_output_length": 4096,
+      "max_tokens": 2048,
+      "temperature": 0.7,
+      "top_p": 0.7,
+      "top_k": 50,
+      "frequency_penalty": 0.5,
+      "stream": false,
+      "response_format": {
+        "type": "text"
+      }
+    },
+    "gemini": {
+      "type": "gemini",
+      "service": "gemini",
+      "api_key": "your-gemini-api-key-here",
+      "model": "gemini-2.0-flash-exp",
+      "language": "zh-CN",
+      "max_context_length": 32768,
+      "max_output_length": 8192
+    }
+  },
+  "default_service": "deepseek",
+  "defaults": {
+    "max_context_length": 4096,
+    "max_output_length": 2048
+  },
+  "translation": {
+    "chunk_size": 4000,
+    "max_workers": 2,
+    "rate_limit_delay": 2.0,
+    "max_retries": 3,
+    "timeout": 60
+  },
+  "cache": {
+    "enabled": true,
+    "dir": "~/.cache/manzh/translations"
+  },
+  "output": {
+    "temp_dir": "~/.cache/manzh/temp",
+    "man_dir": "/usr/local/share/man/zh_CN"
+  }
+}

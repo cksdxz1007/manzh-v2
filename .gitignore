@@ -1,0 +1,73 @@
+# Python字节码文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C扩展
+*.so
+
+# 分发/打包
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 单元测试/覆盖率报告
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# 环境和IDE文件
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 项目特定的敏感文件
+# 包含API密钥的配置文件
+manzh/config.json
+# 测试配置文件可能包含真实API密钥
+tests/unit/test_config.json
+
+# 项目特定的临时文件
+.cache/
+demo_output/
+.manzh_history
+*.log
+
+# 本地测试和调试文件
+demo.py
+demo_*.py
+demo_*.sh
+
+# 缓存和临时文件
+~/.cache/manzh/
+/tmp/
+*.tmp 
