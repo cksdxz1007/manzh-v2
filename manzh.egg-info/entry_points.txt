@@ -1,0 +1,2 @@
+[console_scripts]
+manzh = manzh.cli:main

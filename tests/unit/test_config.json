@@ -1,0 +1,26 @@
+{
+    "services": {
+        "test_openai": {
+            "type": "chatgpt",
+            "api_key": "test_key_1",
+            "url": "https://api.openai.com/v1/chat/completions",
+            "model": "gpt-3.5-turbo",
+            "max_context_length": 4096,
+            "max_output_length": 2048,
+            "language": "zh_CN"
+        },
+        "test_gemini": {
+            "type": "gemini",
+            "api_key": "test_key_2",
+            "model": "gemini-pro",
+            "max_context_length": 8192,
+            "max_output_length": 4096,
+            "language": "zh_CN"
+        }
+    },
+    "default_service": "test_openai",
+    "defaults": {
+        "max_context_length": 4096,
+        "max_output_length": 2048
+    }
+} 
