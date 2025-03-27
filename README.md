@@ -293,96 +293,62 @@ cynning
 
 ## 更新日志
 
-### v1.0.4
-- 改进错误处理机制
-  - 修复翻译失败时仍保存空文件的问题
-  - 添加翻译内容有效性检查
-  - 完善翻译失败时的错误提示
-- 添加完整的命令行接口
-  - 支持所有功能的命令行操作
-  - 添加参数解析和帮助信息
-  - 优化错误处理和返回值
-- 代码结构优化
-  - 重构翻译服务抽象层
-  - 改进配置文件缓存机制
-  - 优化多线程翻译队列
-- 翻译服务增强
-  - 完善翻译服务错误重试机制
-  - 优化翻译缓存策略
-  - 改进翻译进度显示
-
-### v1.0.3
-- 添加 Google Gemini API 支持
-  - 支持 gemini-2.0-flash-exp 模型
-  - 优化翻译服务配置结构
-  - 添加服务类型验证
-- 改进清理功能
-  - 添加交互式清理菜单
-  - 支持按章节列出已翻译命令
-  - 支持删除指定命令的手册
-  - 支持清空所有翻译
-  - 优化错误日志管理
-- 代码优化
-  - 添加翻译服务抽象基类
-  - 改进配置文件验证
-  - 增强错误处理机制
-  - 优化进度显示
-
-### v1.0.2
-- 修复翻译后的手册无法在列表中显示的问题
-- 修复 man 手册和 --help 输出的保存问题
-- 改进 --help 翻译的保存格式
-- 添加翻译文件保存路径的提示
-- 优化命令检查和错误提示逻辑
-
-### v1.0.1
-- 添加对 --help 输出的翻译支持
-- 优化无 man 手册命令的处理
-- 改进翻译提示信息
-- 添加上下文长度和输出长度配置
-- 优化配置文件兼容性处理
-
-### v1.0.0
-- 初始版本发布
-- 支持多种翻译服务
-- 添加交互式界面
-- 支持多线程翻译
+### v2.0.0
+- 完全重构的代码结构
+  - 基于Python包结构，支持pip安装
+  - 抽象化翻译服务接口，便于扩展
+  - 改进命令行界面和参数处理
+- 添加新的翻译服务支持
+  - DeepSeek专属接口支持
+  - Google Gemini API集成
+  - 本地模型(Ollama)集成
+- 交互式配置管理
+  - 多种翻译服务统一配置界面
+  - 配置初始化向导
+  - 命令行和菜单式配置管理
+- 翻译功能增强
+  - 智能处理不同手册格式
+  - 支持--help输出的翻译
+  - 改进翻译缓存机制和重试策略
+  - 增加翻译进度显示
+- 错误处理和调试
+  - 完善的错误提示和恢复机制
+  - 调试模式支持
+  - 敏感信息保护和安全配置
 
 ## 平台支持
 
 ### macOS
 - 使用 `man -M` 选项查看翻译后的手册
 - 需要安装 groff 以支持手册格式化：`brew install groff`
-- 使用 Homebrew 安装依赖
 
 ### Linux
 - 直接支持 `man -M` 和 `MANPATH` 设置
-- 通过包管理器安装依赖
 - 支持主流发行版（Ubuntu、Debian、CentOS、RHEL 等）
 
 ## 安装依赖
 
-安装脚本会自动安装所需依赖，但如果您选择手动安装，可以参考以下命令：
+如果您选择手动安装依赖，可以参考以下命令：
 
 ### macOS
 ```bash
 # 安装基础依赖
-brew install jq python3 groff
+brew install python3 groff
 
 # 安装 Python 依赖
-pip3 install requests
+pip3 install requests typing-extensions
 
-# 可选：安装最新版 man
-brew install man-db
+# 可选：安装 Gemini 支持
+pip3 install google-generativeai
 ```
 
 ### Linux
 ```bash
 # Ubuntu/Debian
-sudo apt install jq python3 python3-requests man-db groff
+sudo apt install python3 python3-pip man-db groff
 
-# CentOS/RHEL
-sudo yum install jq python3 python3-requests man-db groff
+# 安装 Python 依赖
+pip3 install requests typing-extensions
 ```
 
 查看翻译后的手册：
@@ -396,9 +362,4 @@ man ls
 方法二：使用 -M 参数
 ```bash
 man -M /usr/local/share/man/zh_CN <命令>
-```
-
-例如：
-```bash
-man -M /usr/local/share/man/zh_CN ls
 ```
