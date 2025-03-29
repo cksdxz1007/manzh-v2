@@ -53,6 +53,7 @@ venv.bak/
 # 项目特定的敏感文件
 # 包含API密钥的配置文件
 manzh/config.json
+manzh/config.json.example
 # 测试配置文件可能包含真实API密钥
 tests/unit/test_config.json
 
