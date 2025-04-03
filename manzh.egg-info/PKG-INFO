@@ -1,15 +1,16 @@
-Metadata-Version: 2.2
+Metadata-Version: 2.4
 Name: manzh
 Version: 1.0.4
 Summary: Man手册中文翻译工具
 Home-page: https://github.com/cksdxz1007/ManZH
 Author: cynning
-Author-email: cynningli@gmail.com
+Author-email: cynning <cynningli@gmail.com>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/cksdxz1007/ManZH
 Classifier: Development Status :: 5 - Production/Stable
 Classifier: Environment :: Console
 Classifier: Intended Audience :: Developers
 Classifier: Intended Audience :: System Administrators
-Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: POSIX :: Linux
 Classifier: Operating System :: MacOS :: MacOS X
 Classifier: Programming Language :: Python :: 3
@@ -30,17 +31,14 @@ Requires-Dist: google-generativeai>=0.3.2
 Requires-Dist: pytest>=7.4.0
 Requires-Dist: pytest-cov>=4.1.0
 Requires-Dist: typing-extensions>=4.5.0
+Requires-Dist: importlib-metadata>=1.0; python_version < "3.8"
 Dynamic: author
-Dynamic: author-email
-Dynamic: classifier
-Dynamic: description
-Dynamic: description-content-type
 Dynamic: home-page
-Dynamic: requires-dist
 Dynamic: requires-python
-Dynamic: summary
 
-# ManZH - Man手册中文翻译工具
+# ManZH v2 - Man手册中文翻译工具
+
+> 这是ManZH的重构版本，提供更高效的命令手册翻译体验
 
 一个用于将 Linux/Unix man 手册翻译成中文的自动化工具，支持多种翻译服务。
 
@@ -62,110 +60,56 @@ Dynamic: summary
 ## 系统要求
 
 - Linux/Unix 操作系统或 macOS
-- Python 3.x
-- 以下依赖包（安装脚本会自动安装）：
-  - jq
-  - python3-requests
-  - man
-  - col
+- Python 3.6+
+- 依赖包：
+  - requests
+  - typing-extensions
+  - 对于 Gemini 支持：google-generativeai
 
 ## 安装
 
-### 推荐方法：使用安装脚本
+### 从源码安装
 
-1. 克隆仓库：
+1. 克隆或下载仓库：
 ```bash
-git clone git@github.com:cksdxz1007/ManZH.git
+git clone https://github.com/cksdxz1007/ManZH.git
 cd ManZH
 ```
 
-2. 运行安装脚本：
+2. 使用 pip 安装：
 ```bash
-sudo ./install.sh
+# 开发模式安装
+pip install -e .
+
+# 或构建并安装
+python -m build
+pip install dist/manzh-*-py3-none-any.whl
 ```
 
-安装脚本会自动完成以下操作：
-- 检查系统兼容性
-- 安装所需依赖
-- 设置 Python 环境（系统环境或虚拟环境）
-- 创建必要目录
-- 配置 MANPATH 环境变量
-- 创建命令链接
-
-#### 安装选项
-
-安装脚本会提示您选择 Python 环境：
+完成安装后，你可以通过以下命令验证安装：
 ```bash
-Python 环境选择：
-1) 使用虚拟环境（推荐）
-2) 使用系统 Python 环境
-```
-
-选择虚拟环境安装的优势：
-- 避免与系统 Python 包冲突
-- 更容易管理依赖
-- 可以使用 `manzh-activate` 命令激活环境
-
-#### 安装后的验证
-
-安装完成后，可以通过以下方式验证安装：
-
-```bash
-# 检查命令是否可用
+# 查看命令是否可用
 which manzh
 
-# 检查虚拟环境
-ls -la /usr/local/manzh/venv
+# 查看版本
+manzh --version
 
-# 检查配置文件
-cat /usr/local/manzh/config.json
-```
-
-### 手动安装（高级用户）
-
-如果您不想使用安装脚本，也可以手动安装：
-
-1. 安装依赖：
-
-在 macOS 上：
-```bash
-brew install jq python3 groff
-pip3 install requests
-```
-
-在 Linux 上：
-```bash
-# Ubuntu/Debian
-sudo apt install jq python3 python3-requests man-db groff
-
-# CentOS/RHEL
-sudo yum install jq python3 python3-requests man-db groff
-```
-
-2. 添加执行权限：
-```bash
-chmod +x manzh.sh config_manager.sh translate_man.sh clean.sh
-```
-
-3. 设置 MANPATH（可选）：
-```bash
-# 添加到 ~/.bashrc 或 ~/.zshrc
-export MANPATH="/usr/local/share/man/zh_CN:$MANPATH"
-
-# 使设置生效
-source ~/.bashrc  # 或 source ~/.zshrc
-```
-
-4. 创建必要目录：
-```bash
-sudo mkdir -p /usr/local/manzh /usr/local/share/man/zh_CN
+# 查看帮助
+manzh --help
 ```
 
 ## 使用方法
 
 ### 首次使用配置
 
-安装完成后，首次使用前需要配置至少一个翻译服务：
+安装完成后，首次使用前需要初始化配置：
+
+```bash
+# 初始化配置（交互式）
+manzh config init
+```
+
+或直接进入配置菜单：
 
 ```bash
 manzh config
@@ -190,7 +134,7 @@ manzh
 
 ### 命令行模式
 
-ManZH v1.0.4及以上版本支持功能完整的命令行模式，可以直接执行特定功能：
+ManZH 支持功能完整的命令行模式，可以直接执行特定功能：
 
 #### 翻译命令手册
 
@@ -243,6 +187,9 @@ manzh clean
 # 交互式配置管理
 manzh config
 
+# 初始化配置
+manzh config init
+
 # 添加新的翻译服务
 manzh config add
 
@@ -272,31 +219,6 @@ manzh --version
 manzh --debug
 ```
 
-### 虚拟环境使用
-
-如果您在安装时选择了虚拟环境，需要先激活环境：
-
-1. 激活虚拟环境：
-   ```bash
-   source manzh-activate
-   ```
-
-2. 在虚拟环境中使用 ManZH：
-   ```bash
-   manzh translate ls
-   ```
-
-3. 退出虚拟环境：
-   ```bash
-   deactivate
-   ```
-
-虚拟环境的优势：
-- 避免依赖冲突
-- 更好的隔离性
-- 更容易管理依赖
-- 不影响系统 Python 环境
-
 ## 配置翻译服务
 
 支持多种翻译服务，可以通过配置管理工具进行管理：
@@ -315,64 +237,6 @@ manzh config
 
 ### 2. Google Gemini 类型
 - Google Gemini (gemini-2.0-flash-exp 等模型)
-
-配置示例：
-```json
-{
-  "services": {
-    "openai": {
-      "service": "openai",
-      "api_key": "your-api-key",
-      "url": "https://api.openai.com/v1/chat/completions",
-      "model": "gpt-4",
-      "language": "zh-CN",
-      "max_context_length": 8192,
-      "max_output_length": 4096
-    }
-  },
-  "default_service": "openai",
-  "defaults": {
-    "max_context_length": 4096,
-    "max_output_length": 2048
-  }
-}
-```
-
-## 配置文件详解
-
-ManZH 的配置文件 `config.json` 包含以下主要部分：
-
-### 服务配置
-
-每个翻译服务的配置包含以下字段：
-
-| 字段 | 说明 | 示例值 |
-|------|------|--------|
-| type | 服务类型 | "chatgpt" 或 "gemini" 或 "deepseek" |
-| service | 服务名称 | "openai", "deepseek", "ollama", "gemini" |
-| api_key | API 密钥 | "sk-abcdef123456" |
-| url | API 端点 | "https://api.openai.com/v1/chat/completions" |
-| model | 模型名称 | "gpt-4", "deepseek-chat", "gemini-2.0-flash-exp" |
-| language | 目标语言 | "zh-CN" |
-| max_context_length | 上下文最大长度 | 8192 |
-| max_output_length | 输出最大长度 | 4096 |
-
-### 本地模型配置 (Ollama)
-
-使用 Ollama 本地模型的配置示例：
-
-```json
-"ollama": {
-  "type": "chatgpt",
-  "service": "ollama",
-  "api_key": "123",  // 可以是任意值
-  "url": "http://localhost:11434/v1/chat/completions",
-  "model": "qwen2.5:7b",  // 使用已下载的模型名称
-  "language": "zh-CN",
-  "max_context_length": 4096,
-  "max_output_length": 2048
-}
-```
 
 ## 翻译结果
 
@@ -408,11 +272,13 @@ man -M /usr/local/share/man/zh_CN conda
 ├── bin/manzh          # 命令行脚本
 ├── manzh/             # 核心模块
 │   ├── translate.py   # 翻译服务实现
-│   ├── config_cli.py  # 配置管理
+│   ├── config_cli.py  # 配置管理UI
 │   ├── config_manager.py # 配置管理器
 │   ├── clean.py       # 清理功能
 │   ├── list_manuals.py # 列出手册
 │   └── man_utils.py   # 手册处理工具
+├── docs/              # 文档目录
+│   └── manzh.1        # man手册页
 └── README.md          # 说明文档
 ```
 
@@ -423,45 +289,6 @@ man -M /usr/local/share/man/zh_CN conda
 3. 翻译质量取决于所选用的翻译服务
 4. 建议在网络稳定的环境下使用
 5. 注意 API 使用配额限制
-
-## 常见问题与解决方案
-
-### 翻译失败但仍保存了空文件
-
-**症状**：翻译过程报错，但系统仍然提示翻译结果已保存
-**解决方案**：
-- 升级到 v1.0.4 或更高版本，此问题已修复
-- 手动删除可能存在的空文件：`sudo rm /usr/local/share/man/zh_CN/man1/<命令>.1`
-
-### 配置文件错误
-
-**症状**：运行时提示"配置文件错误"或"无法加载配置"
-**解决方案**：
-- 检查配置文件格式是否正确
-- 使用 `manzh config show` 检查配置
-- 如有必要，重新配置翻译服务：`manzh config add`
-
-### 翻译服务 API 错误
-
-**症状**：翻译过程中出现 API 相关错误，如 "User location is not supported" 或 "Resource has been exhausted"
-**解决方案**：
-- 检查 API 密钥是否正确
-- 尝试切换到其他翻译服务，如 DeepSeek 或 Ollama
-- 检查 API 使用配额和区域限制
-
-## 故障排除
-
-1. 如果遇到权限问题：
-   - 确保使用 sudo 运行安装脚本和涉及文件系统操作的命令
-
-2. 如果翻译服务无响应：
-   - 检查网络连接
-   - 验证 API 密钥是否正确
-   - 使用 `--debug` 选项查看详细错误信息
-
-3. 如果手册格式异常：
-   - 尝试清理后重新翻译
-   - 检查原始手册格式
 
 ## 高级使用技巧
 
@@ -494,56 +321,6 @@ function man() {
 }
 ```
 
-### 自动更新翻译
-
-创建定期更新脚本：
-
-```bash
-#!/bin/bash
-# 保存为 update-manzh.sh
-
-# 获取已翻译的命令列表
-TRANSLATED=$(find /usr/local/share/man/zh_CN -type f -name "*.1" | xargs -n1 basename | sed 's/\.1$//')
-
-# 重新翻译所有命令
-for cmd in $TRANSLATED; do
-  echo "更新翻译: $cmd"
-  manzh translate "$cmd" -f
-done
-```
-
-## 性能优化建议
-
-### 翻译大型手册
-
-对于特别大的手册页（如 bash、gcc），可以考虑：
-
-1. 增加配置中的上下文长度和输出长度：
-   ```json
-   "max_context_length": 16384,
-   "max_output_length": 8192
-   ```
-
-2. 使用本地模型（如 Ollama）减少网络延迟
-
-3. 分段翻译，使用 `man <命令> | head -n 1000` 等命令分段处理
-
-### 减少 API 使用量
-
-1. 使用 `manzh clean` 定期清理不常用的翻译
-2. 优先翻译常用命令
-3. 考虑使用本地模型如 Ollama
-
-## 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
-
-1. Fork 本仓库
-2. 创建特性支持
-3. 提交更改
-4. 推送到分支
-5. 创建 Pull Request
-
 ## 许可证
 
 MIT
@@ -554,96 +331,62 @@ cynning
 
 ## 更新日志
 
-### v1.0.4
-- 改进错误处理机制
-  - 修复翻译失败时仍保存空文件的问题
-  - 添加翻译内容有效性检查
-  - 完善翻译失败时的错误提示
-- 添加完整的命令行接口
-  - 支持所有功能的命令行操作
-  - 添加参数解析和帮助信息
-  - 优化错误处理和返回值
-- 代码结构优化
-  - 重构翻译服务抽象层
-  - 改进配置文件缓存机制
-  - 优化多线程翻译队列
-- 翻译服务增强
-  - 完善翻译服务错误重试机制
-  - 优化翻译缓存策略
-  - 改进翻译进度显示
-
-### v1.0.3
-- 添加 Google Gemini API 支持
-  - 支持 gemini-2.0-flash-exp 模型
-  - 优化翻译服务配置结构
-  - 添加服务类型验证
-- 改进清理功能
-  - 添加交互式清理菜单
-  - 支持按章节列出已翻译命令
-  - 支持删除指定命令的手册
-  - 支持清空所有翻译
-  - 优化错误日志管理
-- 代码优化
-  - 添加翻译服务抽象基类
-  - 改进配置文件验证
-  - 增强错误处理机制
-  - 优化进度显示
-
-### v1.0.2
-- 修复翻译后的手册无法在列表中显示的问题
-- 修复 man 手册和 --help 输出的保存问题
-- 改进 --help 翻译的保存格式
-- 添加翻译文件保存路径的提示
-- 优化命令检查和错误提示逻辑
-
-### v1.0.1
-- 添加对 --help 输出的翻译支持
-- 优化无 man 手册命令的处理
-- 改进翻译提示信息
-- 添加上下文长度和输出长度配置
-- 优化配置文件兼容性处理
-
-### v1.0.0
-- 初始版本发布
-- 支持多种翻译服务
-- 添加交互式界面
-- 支持多线程翻译
+### v2.0.0
+- 完全重构的代码结构
+  - 基于Python包结构，支持pip安装
+  - 抽象化翻译服务接口，便于扩展
+  - 改进命令行界面和参数处理
+- 添加新的翻译服务支持
+  - DeepSeek专属接口支持
+  - Google Gemini API集成
+  - 本地模型(Ollama)集成
+- 交互式配置管理
+  - 多种翻译服务统一配置界面
+  - 配置初始化向导
+  - 命令行和菜单式配置管理
+- 翻译功能增强
+  - 智能处理不同手册格式
+  - 支持--help输出的翻译
+  - 改进翻译缓存机制和重试策略
+  - 增加翻译进度显示
+- 错误处理和调试
+  - 完善的错误提示和恢复机制
+  - 调试模式支持
+  - 敏感信息保护和安全配置
 
 ## 平台支持
 
 ### macOS
 - 使用 `man -M` 选项查看翻译后的手册
 - 需要安装 groff 以支持手册格式化：`brew install groff`
-- 使用 Homebrew 安装依赖
 
 ### Linux
 - 直接支持 `man -M` 和 `MANPATH` 设置
-- 通过包管理器安装依赖
 - 支持主流发行版（Ubuntu、Debian、CentOS、RHEL 等）
 
 ## 安装依赖
 
-安装脚本会自动安装所需依赖，但如果您选择手动安装，可以参考以下命令：
+如果您选择手动安装依赖，可以参考以下命令：
 
 ### macOS
 ```bash
 # 安装基础依赖
-brew install jq python3 groff
+brew install python3 groff
 
 # 安装 Python 依赖
-pip3 install requests
+pip3 install requests typing-extensions
 
-# 可选：安装最新版 man
-brew install man-db
+# 可选：安装 Gemini 支持
+pip3 install google-generativeai
 ```
 
 ### Linux
 ```bash
 # Ubuntu/Debian
-sudo apt install jq python3 python3-requests man-db groff
+sudo apt install python3 python3-pip man-db groff
 
-# CentOS/RHEL
-sudo yum install jq python3 python3-requests man-db groff
+# 安装 Python 依赖
+pip3 install requests typing-extensions
 ```
 
 查看翻译后的手册：
@@ -659,7 +402,133 @@ man ls
 man -M /usr/local/share/man/zh_CN <命令>
 ```
 
-例如：
+# ManZH 修复工具
+
+## 问题描述
+
+ManZH工具在执行过程中存在输出缓冲问题，导致在某些环境中运行时看不到实时输出信息，特别是在通过Python模块方式调用时。这个问题主要表现为：
+
+1. 调用Python模块时输出被缓冲，只有在程序结束时才能看到全部输出
+2. 在调试模式下，只能看到"调试模式已启用"的信息，无法看到后续的翻译进度
+3. 通过包装脚本调用时，subprocess的输出捕获可能导致实时输出丢失
+
+## 解决方案
+
+我们提供了一个修复版本的包装脚本 `manzh_fixer.py`，它解决了上述问题：
+
+1. 对每个输出语句后添加 `sys.stdout.flush()` 确保实时显示输出
+2. 修改了命令行参数解析逻辑，使其更加健壮
+3. 提供了交互式菜单，更容易使用
+4. 保留了原始命令行工具的全部功能
+5. 添加了更详细的错误处理和进度显示
+
+## 使用方法
+
+### 直接运行修复版工具
+
 ```bash
-man -M /usr/local/share/man/zh_CN ls
+# 最简单的方式
+python3 manzh_fixer.py
+
+# 或者使用命令行参数（与原始工具兼容）
+python3 manzh_fixer.py translate ls
+python3 manzh_fixer.py --debug translate ls
+```
+
+### 作为模块导入
+
+```python
+# 如果您需要在自己的Python脚本中使用修复后的功能
+import os
+import sys
+from manzh_fixer import translate_command_fixed
+from argparse import Namespace
+
+# 设置参数
+args = Namespace(
+    command="ls",
+    section=None,
+    service=None,
+    debug=True
+)
+
+# 调用修复后的翻译函数
+translate_command_fixed(args)
+```
+
+## 环境检查
+
+如果您仍然遇到问题，可以使用我们提供的环境检查脚本来诊断问题：
+
+```bash
+python3 manzh_env_check.py
+```
+
+该脚本会检查您的Python环境、ManZH配置、包结构和系统依赖，帮助定位可能的问题。
+
+## 后续改进
+
+未来的改进方向：
+
+1. 将修复合并到主要的ManZH包中
+2. 添加更多的日志功能来更好地诊断问题
+3. 改进翻译服务的错误处理和重试机制
+4. 提供更多的本地化选项和配置项
+
+## 贡献
+
+欢迎提交问题报告和改进建议！
+
+## 命令参考
+
+### 翻译命令手册
+
+```bash
+manzh translate <command> [-s section] [--service service_name] [-d/--debug]
+```
+
+### 配置翻译服务
+
+```bash
+manzh config [init|show]
+```
+
+### 列出已翻译手册
+
+```bash
+manzh list
+```
+
+### 清理已翻译手册
+
+```bash
+manzh clean
+```
+
+### 优化已翻译手册
+
+```bash
+manzh optimize [-f file] [-c command] [-s section] [-d directory] [-r] [--debug]
+```
+
+优化已翻译的手册页，移除无意义的符号和行，同时保持文档结构完整。
+
+参数:
+- `-f, --file`: 指定要优化的手册文件路径
+- `-c, --command`: 指定要优化的命令名称
+- `-s, --section`: 指定手册章节号
+- `-d, --dir`: 指定手册目录路径
+- `-r, --recursive`: 递归处理子目录
+- `--debug`: 启用详细调试输出
+
+示例:
+```bash
+# 优化特定命令的手册
+manzh optimize -c conda -s 1
+
+# 优化指定目录下的所有手册
+manzh optimize -d /usr/local/share/man/zh_CN -r
+
+# 优化单个手册文件
+manzh optimize -f /usr/local/share/man/zh_CN/man1/conda.1
 ```

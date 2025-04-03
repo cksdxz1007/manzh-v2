@@ -363,3 +363,134 @@ man ls
 ```bash
 man -M /usr/local/share/man/zh_CN <命令>
 ```
+
+# ManZH 修复工具
+
+## 问题描述
+
+ManZH工具在执行过程中存在输出缓冲问题，导致在某些环境中运行时看不到实时输出信息，特别是在通过Python模块方式调用时。这个问题主要表现为：
+
+1. 调用Python模块时输出被缓冲，只有在程序结束时才能看到全部输出
+2. 在调试模式下，只能看到"调试模式已启用"的信息，无法看到后续的翻译进度
+3. 通过包装脚本调用时，subprocess的输出捕获可能导致实时输出丢失
+
+## 解决方案
+
+我们提供了一个修复版本的包装脚本 `manzh_fixer.py`，它解决了上述问题：
+
+1. 对每个输出语句后添加 `sys.stdout.flush()` 确保实时显示输出
+2. 修改了命令行参数解析逻辑，使其更加健壮
+3. 提供了交互式菜单，更容易使用
+4. 保留了原始命令行工具的全部功能
+5. 添加了更详细的错误处理和进度显示
+
+## 使用方法
+
+### 直接运行修复版工具
+
+```bash
+# 最简单的方式
+python3 manzh_fixer.py
+
+# 或者使用命令行参数（与原始工具兼容）
+python3 manzh_fixer.py translate ls
+python3 manzh_fixer.py --debug translate ls
+```
+
+### 作为模块导入
+
+```python
+# 如果您需要在自己的Python脚本中使用修复后的功能
+import os
+import sys
+from manzh_fixer import translate_command_fixed
+from argparse import Namespace
+
+# 设置参数
+args = Namespace(
+    command="ls",
+    section=None,
+    service=None,
+    debug=True
+)
+
+# 调用修复后的翻译函数
+translate_command_fixed(args)
+```
+
+## 环境检查
+
+如果您仍然遇到问题，可以使用我们提供的环境检查脚本来诊断问题：
+
+```bash
+python3 manzh_env_check.py
+```
+
+该脚本会检查您的Python环境、ManZH配置、包结构和系统依赖，帮助定位可能的问题。
+
+## 后续改进
+
+未来的改进方向：
+
+1. 将修复合并到主要的ManZH包中
+2. 添加更多的日志功能来更好地诊断问题
+3. 改进翻译服务的错误处理和重试机制
+4. 提供更多的本地化选项和配置项
+
+## 贡献
+
+欢迎提交问题报告和改进建议！
+
+## 命令参考
+
+### 翻译命令手册
+
+```bash
+manzh translate <command> [-s section] [--service service_name] [-d/--debug]
+```
+
+### 配置翻译服务
+
+```bash
+manzh config [init|show]
+```
+
+### 列出已翻译手册
+
+```bash
+manzh list
+```
+
+### 清理已翻译手册
+
+```bash
+manzh clean
+```
+
+### 优化已翻译手册
+
+```bash
+manzh optimize [-f file] [-c command] [-s section] [-d directory] [-r] [--debug]
+```
+
+优化已翻译的手册页，移除无意义的符号和行，同时保持文档结构完整。
+
+参数:
+- `-f, --file`: 指定要优化的手册文件路径
+- `-c, --command`: 指定要优化的命令名称
+- `-s, --section`: 指定手册章节号
+- `-d, --dir`: 指定手册目录路径
+- `-r, --recursive`: 递归处理子目录
+- `--debug`: 启用详细调试输出
+
+示例:
+```bash
+# 优化特定命令的手册
+manzh optimize -c conda -s 1
+
+# 优化指定目录下的所有手册
+manzh optimize -d /usr/local/share/man/zh_CN -r
+
+# 优化单个手册文件
+manzh optimize -f /usr/local/share/man/zh_CN/man1/conda.1
+```

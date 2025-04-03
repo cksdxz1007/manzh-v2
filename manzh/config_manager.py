@@ -48,19 +48,19 @@ def log_error(message, error=None, exit_code=None):
         sys.exit(exit_code)
 
 class ProgressDisplay:
-    """进度显示类"""
-    def __init__(self, total=100, prefix='', suffix='', decimals=1, length=50, fill='█', print_end="\r"):
+    """进度条显示类"""
+    
+    def __init__(self, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
         """
-        初始化进度显示
+        初始化进度条
         
         Args:
-            total: 总数
+            total: 总任务数
             prefix: 前缀字符串
             suffix: 后缀字符串
-            decimals: 百分比小数位数
+            decimals: 显示小数位数
             length: 进度条长度
             fill: 进度条填充字符
-            print_end: 打印结束符
         """
         self.total = total
         self.prefix = prefix
@@ -68,45 +68,49 @@ class ProgressDisplay:
         self.decimals = decimals
         self.length = length
         self.fill = fill
-        self.print_end = print_end
-        self._current = 0
-        self._last_update = 0
-        self._update_interval = 0.1  # 更新间隔（秒）
+        self.iteration = 0
+        self.start_time = time.time()
+        sys.stdout.flush()
         
-    def update(self, current):
+    def update(self, iteration=None):
         """
-        更新进度显示
+        更新进度条
         
         Args:
-            current: 当前进度值
+            iteration: 当前迭代次数
         """
-        self._current = current
-        current_time = time.time()
-        
-        # 控制更新频率
-        if current_time - self._last_update < self._update_interval and current < self.total:
-            return
+        if iteration is not None:
+            self.iteration = iteration
+        else:
+            self.iteration += 1
             
-        self._last_update = current_time
-        
-        percent = ("{0:." + str(self.decimals) + "f}").format(100 * (current / float(self.total)))
-        filled_length = int(self.length * current // self.total)
+        percent = ("{0:." + str(self.decimals) + "f}").format(100 * (self.iteration / float(self.total)))
+        filled_length = int(self.length * self.iteration // self.total)
         bar = self.fill * filled_length + '-' * (self.length - filled_length)
         
-        # 使用 \033[K 清除行尾
-        print(f'\r\033[K{self.prefix} |{bar}| {percent}% {self.suffix}', end=self.print_end, file=sys.stderr)
-        
-        if current >= self.total:
-            print(file=sys.stderr)  # 完成时换行
+        # 计算耗时和预计剩余时间
+        elapsed_time = time.time() - self.start_time
+        if self.iteration > 0:
+            avg_time_per_iter = elapsed_time / self.iteration
+            remaining_time = avg_time_per_iter * (self.total - self.iteration)
+            time_info = f" [用时: {format_time(elapsed_time)}, 剩余: {format_time(remaining_time)}]"
+        else:
+            time_info = ""
             
+        print(f'\r{self.prefix} |{bar}| {percent}% {self.suffix}{time_info}', end='')
+        sys.stdout.flush()
+        
     def finish(self):
-        """完成进度显示"""
-        self.update(self.total)
+        """完成进度条"""
+        total_time = time.time() - self.start_time
+        print(f"\r{self.prefix} |{self.fill * self.length}| 100% {self.suffix} [完成: {format_time(total_time)}]")
+        sys.stdout.flush()
 
 class ConfigLoadingProgress:
     """配置加载进度显示类"""
     def __init__(self):
         self.progress = ProgressDisplay(
+            total=100,  # 设置总进度为100
             prefix="配置加载中",
             suffix="",
             length=30
@@ -125,8 +129,10 @@ class ConfigLoadingProgress:
         self.progress.finish()
         if success:
             print("配置加载完成", file=sys.stderr)
+            sys.stderr.flush()
         else:
             print("配置加载失败", file=sys.stderr)
+            sys.stderr.flush()
 
 class ConfigCache:
     """配置文件缓存类"""
@@ -371,3 +377,18 @@ def load_config(config_path=None, service_name=None):
     if config_path is None:
         config_path = get_default_config_path()
     return ConfigCache.get_config(config_path, service_name)
+
+def format_time(seconds):
+    """
+    格式化时间
+    
+    Args:
+        seconds: 秒数
+        
+    Returns:
+        str: 格式化后的时间字符串
+    """
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    remaining_seconds = int(seconds % 60)
+    return f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}"

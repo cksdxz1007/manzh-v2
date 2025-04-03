@@ -4,7 +4,7 @@ ManZH - Man手册中文翻译工具
 一个用于将Linux/Unix man手册翻译成中文的自动化工具，支持多种翻译服务。
 """
 
-__version__ = "1.0.4"
+__version__ = "2.1.0"
 __author__ = "cynning"
 __license__ = "MIT"
 
@@ -20,6 +20,11 @@ from .config_cli import (
     interactive_delete_service,
     interactive_set_default
 )
+from .optimize import optimize_man_page, optimize_man_directory, interactive_optimize
+
+# 设置环境变量确保输出不缓冲
+import os
+os.environ["PYTHONUNBUFFERED"] = "1"
 
 __all__ = [
     'TranslationQueue',
@@ -39,5 +44,8 @@ __all__ = [
     'interactive_add_service',
     'interactive_update_service',
     'interactive_delete_service',
-    'interactive_set_default'
+    'interactive_set_default',
+    'optimize_man_page',
+    'optimize_man_directory',
+    'interactive_optimize'
 ]

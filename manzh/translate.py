@@ -14,6 +14,7 @@ import google.generativeai as genai
 from abc import ABC, abstractmethod
 from .config_manager import ProgressDisplay
 import shutil
+from typing import List
 
 class TranslationService(ABC):
     """翻译服务的抽象基类"""
@@ -84,6 +85,7 @@ class ChatGPTService(TranslationService):
                 
         except Exception as e:
             print(f"翻译请求失败：{str(e)}", file=sys.stderr)
+            sys.stderr.flush()
             raise
 
 class GeminiService(TranslationService):
@@ -116,6 +118,7 @@ class GeminiService(TranslationService):
                 
         except Exception as e:
             print(f"Gemini翻译请求失败：{str(e)}", file=sys.stderr)
+            sys.stderr.flush()
             raise
 
 class DeepSeekAPIError(Exception):
@@ -228,10 +231,14 @@ class DeepSeekService(TranslationService):
                 usage = result["usage"]
                 if "prompt_cache_hit_tokens" in usage:
                     print(f"\n缓存命中: {usage['prompt_cache_hit_tokens']} tokens (0.1元/百万tokens)")
+                    sys.stdout.flush()
                 if "prompt_cache_miss_tokens" in usage:
                     print(f"缓存未命中: {usage['prompt_cache_miss_tokens']} tokens (1元/百万tokens)")
+                    sys.stdout.flush()
                 print(f"完成 tokens: {usage.get('completion_tokens', 0)}")
+                sys.stdout.flush()
                 print(f"总计 tokens: {usage.get('total_tokens', 0)}")
+                sys.stdout.flush()
             
             if "choices" in result and len(result["choices"]) > 0:
                 choice = result["choices"][0]
@@ -239,10 +246,13 @@ class DeepSeekService(TranslationService):
                 
                 if finish_reason == "length":
                     print("\n警告：输出被截断，因为达到了最大长度限制")
+                    sys.stdout.flush()
                 elif finish_reason == "content_filter":
                     print("\n警告：输出被内容过滤策略截断")
+                    sys.stdout.flush()
                 elif finish_reason == "insufficient_system_resource":
                     print("\n警告：由于系统资源不足，输出被中断")
+                    sys.stdout.flush()
                 
                 return choice["message"]["content"].strip()
             else:
@@ -250,18 +260,23 @@ class DeepSeekService(TranslationService):
                 
         except requests.exceptions.Timeout:
             print(f"\n错误：请求超时（{self.config.get('timeout', 60)}秒）", file=sys.stderr)
+            sys.stderr.flush()
             raise
         except requests.exceptions.ConnectionError:
             print("\n错误：网络连接失败", file=sys.stderr)
+            sys.stderr.flush()
             raise
         except requests.exceptions.RequestException as e:
             print(f"\n错误：请求失败 - {str(e)}", file=sys.stderr)
+            sys.stderr.flush()
             raise
         except ValueError as e:
             print(f"\n错误：响应解析失败 - {str(e)}", file=sys.stderr)
+            sys.stderr.flush()
             raise
         except Exception as e:
             print(f"\n错误：未知错误 - {str(e)}", file=sys.stderr)
+            sys.stderr.flush()
             raise
 
 def create_translation_service(config):
@@ -282,6 +297,10 @@ def create_translation_service(config):
         return ChatGPTService(config)
     elif service_type == "gemini":
         return GeminiService(config)
+    elif service_type == "siliconflow":
+        return SiliconFlowService(config)
+    elif service_type == "openrouter":
+        return OpenRouterService(config)
     else:
         raise ValueError(f"不支持的翻译服务类型：{service_type}")
 
@@ -310,49 +329,51 @@ class TranslationQueue:
         self.is_cancelled = False
         self.executor = None
         self.progress = None
+        self.start_time = time.time()
+        self.translated_chunks = 0
         
-    def prepare_content(self, content):
+    def prepare_content(self, text: str) -> List[str]:
         """
-        准备要翻译的内容，将其分割成块
+        将文本分割成多个块以便翻译
         
         Args:
-            content: 要翻译的内容
+            text: 要翻译的文本
             
         Returns:
-            list: 内容块列表
+            List[str]: 分割后的文本块列表
         """
-        # 按段落分割
-        paragraphs = content.split('\n\n')
+        # 检查配置和参数
+        raw_lines = text.splitlines()
+        max_chars = self.chunk_size
         chunks = []
         current_chunk = []
         current_size = 0
         
-        for para in paragraphs:
-            para_size = len(para)
-            
-            if current_size + para_size > self.chunk_size and current_chunk:
-                # 当前块已满，保存并开始新块
-                chunks.append('\n\n'.join(current_chunk))
-                current_chunk = [para]
-                current_size = para_size
-            else:
-                # 添加到当前块
-                current_chunk.append(para)
-                current_size += para_size
+        # 逐行添加内容，当超过最大块大小时创建新块
+        for line in raw_lines:
+            # 如果是空行，直接添加到当前块
+            if not line.strip():
+                current_chunk.append(line)
+                current_size += len(line) + 1  # +1 是换行符
+                continue
+                
+            # 如果当前行加上当前块的大小超过最大值，创建新块
+            if current_size + len(line) + 1 > max_chars and current_chunk:
+                chunks.append('\n'.join(current_chunk))
+                current_chunk = []
+                current_size = 0
+                
+            current_chunk.append(line)
+            current_size += len(line) + 1  # +1 是换行符
         
         # 添加最后一个块
         if current_chunk:
-            chunks.append('\n\n'.join(current_chunk))
-            
+            chunks.append('\n'.join(current_chunk))
+        
+        # 更新进度条
         self.total_chunks = len(chunks)
-        self.progress = ProgressDisplay(
-            total=self.total_chunks,
-            prefix="翻译进度",
-            suffix="",
-            length=40,
-            fill='█'
-        )
-        self.progress.update(0)
+        self.translated_chunks = 0
+        self.update_progress_bar()
         
         return chunks
         
@@ -379,17 +400,46 @@ class TranslationQueue:
         if self.progress:
             self.progress.update(self.completed_chunks)
             
-    def get_ordered_results(self):
-        """获取按顺序排列的结果"""
-        if self.failed_chunks:
-            return None
+    def update_progress_bar(self):
+        """更新进度条显示"""
+        if not hasattr(self, 'progress') or self.progress is None:
+            self.progress = ProgressDisplay(
+                total=self.total_chunks,
+                prefix="翻译进度",
+                suffix="",
+                length=40,
+                fill='█'
+            )
+        
+        elapsed = time.time() - self.start_time
+        if self.translated_chunks > 0:
+            remaining = elapsed / self.translated_chunks * (self.total_chunks - self.translated_chunks)
+        else:
+            remaining = 0
             
-        ordered_results = []
-        for i in range(self.total_chunks):
-            if i in self.results:
-                ordered_results.append(self.results[i])
-                
-        return '\n\n'.join(ordered_results)
+        progress_percent = self.translated_chunks / self.total_chunks * 100 if self.total_chunks > 0 else 0
+        suffix = f" [用时: {self._format_time(elapsed)}, 剩余: {self._format_time(remaining)}]"
+        
+        # 更新进度条 - 只传递一个参数
+        self.progress.update(self.translated_chunks)
+        sys.stdout.flush()
+        
+    def get_ordered_results(self):
+        """获取按顺序排列的翻译结果"""
+        if not self.results or len(self.results) != self.total_chunks:
+            return None
+        
+        # 按索引排序结果
+        ordered_results = [self.results[i] for i in range(self.total_chunks)]
+        return '\n'.join(ordered_results)
+        
+    def _format_time(self, seconds):
+        """格式化时间为 mm:ss 格式"""
+        minutes, seconds = divmod(int(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+        if hours > 0:
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        return f"{minutes:02d}:{seconds:02d}"
         
     def cancel_translation(self):
         """取消翻译任务"""
@@ -399,6 +449,7 @@ class TranslationQueue:
         if self.progress:
             self.progress.finish()
         print("\n\n已取消翻译任务", file=sys.stderr)
+        sys.stderr.flush()
         
     def process_queue(self, service, system_prompt):
         """并行处理翻译队列"""
@@ -421,6 +472,7 @@ class TranslationQueue:
                         future.result()
                     except Exception as e:
                         print(f"\n任务执行失败: {str(e)}", file=sys.stderr)
+                        sys.stderr.flush()
                         
         except KeyboardInterrupt:
             self.cancel_translation()
@@ -439,16 +491,35 @@ class TranslationQueue:
                 time.sleep(self.rate_limit_delay)
                 result = service.translate(chunk, system_prompt)
                 self.add_result(index, result)
+                self.translated_chunks += 1
                 return True
             except Exception as e:
                 retries += 1
                 print(f"\n翻译块 {index} 失败 (尝试 {retries}/{self.max_retries}): {str(e)}", file=sys.stderr)
+                sys.stderr.flush()
                 if retries == self.max_retries:
                     self.add_failed_chunk(index)
                     return False
                 # 指数退避
                 time.sleep(2 ** retries)
         return False
+
+    def get_chunk(self):
+        """
+        从队列中获取一个块
+        
+        Returns:
+            tuple: (索引, 内容) 元组，如果队列为空则返回None
+        """
+        try:
+            if self.queue.empty():
+                return None
+            return self.queue.get(block=False)
+        except Exception as e:
+            print(f"获取任务失败: {str(e)}", file=sys.stderr)
+            sys.stderr.flush()
+            sys.stderr.flush()
+            return None
 
 def create_retry_session(retries=3, backoff_factor=0.3, 
                         status_forcelist=(500, 502, 504)):
@@ -486,6 +557,7 @@ class TranslationCache:
                     return f.read()
             except Exception as e:
                 print(f"读取缓存失败：{str(e)}", file=sys.stderr)
+                sys.stderr.flush()
         return None
     
     def save_translation(self, command_name, section, content):
@@ -497,6 +569,7 @@ class TranslationCache:
             return True
         except Exception as e:
             print(f"保存缓存失败：{str(e)}", file=sys.stderr)
+            sys.stderr.flush()
             return False
 
 # 创建全局缓存实例
@@ -521,9 +594,12 @@ def translate_command(command_name, section="1", force_translate=False):
             cached_content = translation_cache.get_cached_translation(command_name, section)
             if cached_content:
                 print("\n使用缓存的翻译结果...")
+                sys.stdout.flush()
                 print("\n验证缓存内容...")
+                sys.stdout.flush()
                 if not is_chinese_content(cached_content):
                     print("缓存内容不是中文，将重新翻译", file=sys.stderr)
+                    sys.stderr.flush()
                     force_translate = True
                 else:
                     return save_man_page(cached_content, command_name, section)
@@ -540,6 +616,7 @@ def translate_command(command_name, section="1", force_translate=False):
                                       text=True)
             if help_result.returncode != 0:
                 print(f"错误：无法获取命令 '{command_name}' 的手册或帮助信息")
+                sys.stdout.flush()
                 return False
             content = help_result.stdout
         else:
@@ -551,6 +628,7 @@ def translate_command(command_name, section="1", force_translate=False):
             content, _ = col_process.communicate(input=man_result.stdout)
         
         print("\n原始内容长度:", len(content), "字符")
+        sys.stdout.flush()
         
         # 获取配置
         from manzh.config_manager import ConfigCache
@@ -588,8 +666,11 @@ def translate_command(command_name, section="1", force_translate=False):
         
         # 开始翻译
         print("\n开始翻译...")
+        sys.stdout.flush()
         print(f"总计 {len(chunks)} 个块，使用 {queue.max_workers} 个并行线程")
+        sys.stdout.flush()
         print("按 Ctrl+C 可以随时中断翻译")
+        sys.stdout.flush()
         
         # 使用并行处理
         queue.process_queue(service, system_prompt)
@@ -597,43 +678,54 @@ def translate_command(command_name, section="1", force_translate=False):
         # 检查是否有失败的块或被取消
         if queue.is_cancelled:
             print("\n翻译已被用户取消")
+            sys.stdout.flush()
             return False
             
         if queue.failed_chunks:
             print(f"\n翻译失败：{len(queue.failed_chunks)} 个块翻译失败")
+            sys.stdout.flush()
             return False
             
         print("\n整理翻译结果...")
+        sys.stdout.flush()
         translated_content = queue.get_ordered_results()
         
         if translated_content is None:
             print("\n错误：无法获取完整的翻译结果")
+            sys.stdout.flush()
             return False
             
         print("\n翻译后内容长度:", len(translated_content), "字符")
+        sys.stdout.flush()
         
         # 验证翻译结果是否为中文
         if not is_chinese_content(translated_content):
             print("\n错误：翻译结果不包含中文内容，可能翻译失败", file=sys.stderr)
+            sys.stderr.flush()
             return False
             
         # 保存翻译结果到缓存
         if config.get("cache", {}).get("enabled", True):
             print("\n保存到缓存...")
+            sys.stdout.flush()
             if not translation_cache.save_translation(command_name, section, translated_content):
                 print("\n警告：保存到缓存失败", file=sys.stderr)
+                sys.stderr.flush()
         
         # 保存翻译结果
         print("\n保存翻译结果...")
+        sys.stdout.flush()
         return save_man_page(translated_content, command_name, section)
             
     except KeyboardInterrupt:
         print("\n\n正在清理并退出...", file=sys.stderr)
+        sys.stderr.flush()
         if queue:
             queue.cancel_translation()
         return False
     except Exception as e:
         print(f"翻译过程失败：{str(e)}", file=sys.stderr)
+        sys.stderr.flush()
         return False
 
 def is_chinese_content(text):
@@ -670,10 +762,12 @@ def save_man_page(content, command_name, section):
     try:
         if not content:
             print("\n错误：要保存的内容为空", file=sys.stderr)
+            sys.stderr.flush()
             return False
             
         if not is_chinese_content(content):
             print("\n错误：要保存的内容不是中文", file=sys.stderr)
+            sys.stderr.flush()
             return False
             
         # 创建临时目录
@@ -683,6 +777,7 @@ def save_man_page(content, command_name, section):
         # 保存到临时文件
         temp_file = os.path.join(temp_dir, f"{command_name}.{section}")
         print(f"\n保存到临时文件：{temp_file}")
+        sys.stdout.flush()
         
         with open(temp_file, "w", encoding="utf-8") as f:
             f.write(content)
@@ -690,12 +785,14 @@ def save_man_page(content, command_name, section):
         # 验证临时文件
         if not os.path.exists(temp_file):
             print("\n错误：临时文件未创建成功", file=sys.stderr)
+            sys.stderr.flush()
             return False
             
         with open(temp_file, "r", encoding="utf-8") as f:
             saved_content = f.read()
             if not is_chinese_content(saved_content):
                 print("\n错误：临时文件内容不是中文", file=sys.stderr)
+                sys.stderr.flush()
                 return False
         
         # 目标目录和文件
@@ -703,18 +800,21 @@ def save_man_page(content, command_name, section):
         target_file = os.path.join(target_dir, f"{command_name}.{section}")
         
         print(f"\n目标文件路径：{target_file}")
+        sys.stdout.flush()
         
         # 使用sudo命令创建目录和复制文件
         try:
             # 检测操作系统类型
             if sys.platform == "darwin":  # macOS
                 print("\n在 macOS 上创建目录和复制文件...")
+                sys.stdout.flush()
                 subprocess.run(['sudo', 'mkdir', '-p', target_dir], check=True)
                 subprocess.run(['sudo', 'cp', temp_file, target_file], check=True)
                 subprocess.run(['sudo', 'chown', 'root:wheel', target_file], check=True)
                 subprocess.run(['sudo', 'chmod', '644', target_file], check=True)
             else:  # Linux
                 print("\n在 Linux 上创建目录和复制文件...")
+                sys.stdout.flush()
                 subprocess.run(['sudo', 'mkdir', '-p', target_dir], check=True)
                 subprocess.run(['sudo', 'cp', temp_file, target_file], check=True)
                 subprocess.run(['sudo', 'chown', 'root:root', target_file], check=True)
@@ -723,38 +823,53 @@ def save_man_page(content, command_name, section):
             # 验证目标文件
             if not os.path.exists(target_file):
                 print("\n错误：目标文件未创建成功", file=sys.stderr)
+                sys.stderr.flush()
                 return False
                 
             print(f"\n手册已保存到：{target_file}")
+            sys.stdout.flush()
             print("\n请使用 'man -L zh_CN <命令>' 查看翻译后的手册")
+            sys.stdout.flush()
             return True
             
         except subprocess.CalledProcessError as e:
             print(f"\n保存手册失败：需要sudo权限")
+            sys.stdout.flush()
             print("请使用以下命令手动复制文件：")
+            sys.stdout.flush()
             print(f"sudo mkdir -p {target_dir}")
+            sys.stdout.flush()
             print(f"sudo cp {temp_file} {target_file}")
+            sys.stdout.flush()
             print(f"sudo chown root:{'wheel' if sys.platform == 'darwin' else 'root'} {target_file}")
+            sys.stdout.flush()
             print(f"sudo chmod 644 {target_file}")
+            sys.stdout.flush()
             return False
             
     except Exception as e:
         print(f"保存手册失败：{str(e)}", file=sys.stderr)
+        sys.stderr.flush()
         return False
 
 def main_menu():
     """主菜单"""
     while True:
         print("\n=== ManZH 中文手册翻译工具 ===")
+        sys.stdout.flush()
         print("1. 翻译命令手册")
+        sys.stdout.flush()
         print("2. 配置管理")
+        sys.stdout.flush()
         print("0. 退出")
+        sys.stdout.flush()
         
         try:
             choice = input("\n请选择操作 [0-2]: ")
             
             if choice == "0":
                 print("\n感谢使用！")
+                sys.stdout.flush()
                 break
             elif choice == "1":
                 command = input("\n请输入要翻译的命令名称：")
@@ -765,10 +880,224 @@ def main_menu():
                 config_menu()
             else:
                 print("\n无效的选择，请重试")
+                sys.stdout.flush()
                 
         except KeyboardInterrupt:
             print("\n\n操作已取消")
+            sys.stdout.flush()
             continue
         except Exception as e:
             print(f"\n操作失败：{str(e)}", file=sys.stderr)
+            sys.stderr.flush()
             continue
+
+class SiliconFlowService(TranslationService):
+    """Silicon Flow 翻译服务实现"""
+    
+    def __init__(self, config):
+        self.config = config
+        # 验证必要的配置项
+        if not config.get("api_key"):
+            raise ValueError("配置验证失败：缺少必要配置项：api_key")
+        if not config.get("model"):
+            raise ValueError("配置验证失败：缺少必要配置项：model")
+        if not (config.get("url") or config.get("base_url")):
+            raise ValueError("配置验证失败：缺少必要配置项：url 或 base_url")
+            
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=["POST"]
+        )
+        self.session = requests.Session()
+        self.session.mount("https://", HTTPAdapter(max_retries=retry_strategy))
+        
+    def _get_api_url(self):
+        """获取 API URL"""
+        if self.config.get("url"):
+            return self.config.get("url")
+        base = self.config.get("base_url")
+        return f"{base}/v1/chat/completions"
+        
+    def translate(self, content, system_prompt):
+        """
+        使用 Silicon Flow API 翻译内容
+        
+        Args:
+            content: 要翻译的内容
+            system_prompt: 系统提示
+            
+        Returns:
+            str: 翻译后的内容
+        """
+        headers = {
+            "Authorization": f"Bearer {self.config['api_key']}",
+            "Content-Type": "application/json"
+        }
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": content}
+        ]
+        
+        data = {
+            "model": self.config["model"],
+            "messages": messages,
+            "temperature": self.config.get("temperature", 0.7),
+            "max_tokens": self.config.get("max_tokens", 2048),
+            "response_format": self.config.get("response_format", {"type": "text"}),
+            "stream": False,
+            "top_p": self.config.get("top_p", 0.7),
+            "top_k": self.config.get("top_k", 50),
+            "frequency_penalty": self.config.get("frequency_penalty", 0.5)
+        }
+        
+        try:
+            response = self.session.post(
+                self._get_api_url(),
+                headers=headers,
+                json=data,
+                timeout=self.config.get("timeout", 60)
+            )
+            
+            if response.status_code != 200:
+                print(f"\n错误：API返回状态码 {response.status_code}")
+                sys.stdout.flush()
+                print(f"详细信息：{response.text}")
+                sys.stdout.flush()
+                raise ValueError(f"API返回错误：{response.text}")
+                
+            result = response.json()
+            
+            if "choices" in result and len(result["choices"]) > 0:
+                return result["choices"][0]["message"]["content"].strip()
+            else:
+                raise ValueError("API返回结果格式错误：缺少 choices 字段")
+                
+        except requests.exceptions.Timeout:
+            print(f"\n错误：请求超时（{self.config.get('timeout', 60)}秒）", file=sys.stderr)
+            sys.stderr.flush()
+            raise
+        except requests.exceptions.ConnectionError:
+            print("\n错误：网络连接失败", file=sys.stderr)
+            sys.stderr.flush()
+            raise
+        except requests.exceptions.RequestException as e:
+            print(f"\n错误：请求失败 - {str(e)}", file=sys.stderr)
+            sys.stderr.flush()
+            raise
+        except ValueError as e:
+            print(f"\n错误：响应解析失败 - {str(e)}", file=sys.stderr)
+            sys.stderr.flush()
+            raise
+        except Exception as e:
+            print(f"\n错误：未知错误 - {str(e)}", file=sys.stderr)
+            sys.stderr.flush()
+            raise
+
+class OpenRouterService(TranslationService):
+    """OpenRouter 翻译服务实现"""
+    
+    def __init__(self, config):
+        self.config = config
+        # 验证必要的配置项
+        if not config.get("api_key"):
+            raise ValueError("配置验证失败：缺少必要配置项：api_key")
+        if not config.get("model"):
+            raise ValueError("配置验证失败：缺少必要配置项：model")
+        if not (config.get("url") or config.get("base_url")):
+            raise ValueError("配置验证失败：缺少必要配置项：url 或 base_url")
+            
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=["POST"]
+        )
+        self.session = requests.Session()
+        self.session.mount("https://", HTTPAdapter(max_retries=retry_strategy))
+        
+    def _get_api_url(self):
+        """获取 API URL"""
+        if self.config.get("url"):
+            return self.config.get("url")
+        base = self.config.get("base_url")
+        return f"{base}/chat/completions"
+        
+    def translate(self, content, system_prompt):
+        """
+        使用 OpenRouter API 翻译内容
+        
+        Args:
+            content: 要翻译的内容
+            system_prompt: 系统提示
+            
+        Returns:
+            str: 翻译后的内容
+        """
+        headers = {
+            "Authorization": f"Bearer {self.config['api_key']}",
+            "Content-Type": "application/json"
+        }
+        
+        # 添加可选的标题和引用头
+        if self.config.get("headers"):
+            headers.update(self.config.get("headers"))
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": content}
+        ]
+        
+        data = {
+            "model": self.config["model"],
+            "messages": messages,
+            "temperature": self.config.get("temperature", 0.7),
+            "max_tokens": self.config.get("max_output_length", 4096),
+            "top_p": self.config.get("top_p", 0.7),
+            "stream": False
+        }
+        
+        try:
+            response = self.session.post(
+                self._get_api_url(),
+                headers=headers,
+                json=data,
+                timeout=self.config.get("timeout", 60)
+            )
+            
+            if response.status_code != 200:
+                print(f"\n错误：API返回状态码 {response.status_code}")
+                sys.stdout.flush()
+                print(f"详细信息：{response.text}")
+                sys.stdout.flush()
+                raise ValueError(f"API返回错误：{response.text}")
+                
+            result = response.json()
+            
+            if "choices" in result and len(result["choices"]) > 0:
+                return result["choices"][0]["message"]["content"].strip()
+            else:
+                raise ValueError("API返回结果格式错误：缺少 choices 字段")
+                
+        except requests.exceptions.Timeout:
+            print(f"\n错误：请求超时（{self.config.get('timeout', 60)}秒）", file=sys.stderr)
+            sys.stderr.flush()
+            raise
+        except requests.exceptions.ConnectionError:
+            print("\n错误：网络连接失败", file=sys.stderr)
+            sys.stderr.flush()
+            raise
+        except requests.exceptions.RequestException as e:
+            print(f"\n错误：请求失败 - {str(e)}", file=sys.stderr)
+            sys.stderr.flush()
+            raise
+        except ValueError as e:
+            print(f"\n错误：响应解析失败 - {str(e)}", file=sys.stderr)
+            sys.stderr.flush()
+            raise
+        except Exception as e:
+            print(f"\n错误：未知错误 - {str(e)}", file=sys.stderr)
+            sys.stderr.flush()
+            raise

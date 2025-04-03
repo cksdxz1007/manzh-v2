@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=64.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "manzh"
+version = "1.0.4"
+description = "Man手册中文翻译工具"
+readme = "README.md"
+authors = [
+    {name = "cynning", email = "cynningli@gmail.com"}
+]
+license = "MIT"
+requires-python = ">=3.6"
+dependencies = [
+    "requests>=2.31.0",
+    "google-generativeai>=0.3.2",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "typing-extensions>=4.5.0",
+    'importlib-metadata>=1.0; python_version < "3.8"'
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Utilities"
+]
+
+[project.urls]
+Homepage = "https://github.com/cksdxz1007/ManZH"
+
+[project.scripts]
+manzh = "manzh.cli:main"
+
+[tool.setuptools]
+packages = ["manzh"]
+py-modules = ["main"]
+
+[tool.setuptools.package-data]
+manzh = ["config.json.example"]
+
+[tool.setuptools.data-files]
+"share/man/man1" = ["docs/manzh.1"] 

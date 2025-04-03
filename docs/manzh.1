@@ -1,0 +1,295 @@
+.TH MANZH 1 "2023年7月" "manzh 2.1.0" "用户命令"
+.SH 名称
+manzh \- Man手册中文翻译工具
+.SH 概述
+.B manzh
+[\fB\-h\fR]
+[\fB\-d, \-\-debug\fR]
+[\fB\-v, \-\-version\fR]
+.I 命令
+[命令参数]
+.SH 描述
+.B manzh
+是一个用于将Linux/Unix man手册翻译成中文的自动化工具，支持多种翻译服务。该工具可以自动获取命令的man手册或--help输出，通过调用翻译API将内容翻译成中文，并将结果保存为本地man页面。
+.PP
+主要功能：
+.IP \[bu] 2
+自动获取和翻译命令的man手册
+.IP \[bu] 2
+支持翻译命令的--help输出（当没有man手册时）
+.IP \[bu] 2
+支持多个翻译服务（OpenAI、DeepSeek、Ollama等）
+.IP \[bu] 2
+支持自定义上下文长度和输出长度
+.IP \[bu] 2
+智能适配不同翻译服务的参数
+.IP \[bu] 2
+支持多章节手册的批量翻译
+.IP \[bu] 2
+保留原始格式和代码块
+.IP \[bu] 2
+交互式配置界面
+.IP \[bu] 2
+多线程并行翻译
+.IP \[bu] 2
+支持断点续传
+.IP \[bu] 2
+显示翻译进度
+.IP \[bu] 2
+优化已翻译手册（移除无意义符号和行）
+.SH 命令
+manzh支持以下子命令：
+.TP
+.BR translate " <命令名称> [\-s <章节>] [\-\-service <服务名>] [\-d/\-\-debug]"
+翻译指定命令的man手册或帮助信息。
+.TP
+.BR config " [init|show|add|update|delete|default]"
+配置管理工具，用于管理翻译服务设置。
+.TP
+.BR list " [\-s <章节>]"
+列出已翻译的手册页面。
+.TP
+.BR clean " [命令名称] [\-s <章节>] [\-a]"
+清理已翻译的手册页面。
+.TP
+.BR optimize " [\-f <文件>] [\-c <命令>] [\-s <章节>] [\-d <目录>] [\-r] [\-\-debug]"
+优化已翻译的手册页面，移除无意义的符号和行。
+.SH 选项
+.TP
+.BR \-h ", " \-\-help
+显示帮助信息。
+.TP
+.BR \-d ", " \-\-debug
+启用调试模式，显示详细的处理信息。
+.TP
+.BR \-v ", " \-\-version
+显示版本信息。
+.SH "TRANSLATE 命令"
+.TP
+.BR "manzh translate " <命令名称> " [\-s <章节>] [\-\-service <服务名>] [\-d/\-\-debug]"
+.PP
+参数：
+.TP
+.I <命令名称>
+要翻译的命令名称，如"ls"、"grep"等。
+.TP
+.BR \-s ", " \-\-section " <章节>"
+指定要翻译的man手册章节（可选）。
+.TP
+.BR \-\-service " <服务名>"
+指定使用的翻译服务（可选）。
+.TP
+.BR \-d ", " \-\-debug
+启用调试模式。
+.PP
+示例：
+.PP
+.nf
+# 翻译ls命令的手册
+manzh translate ls
+
+# 翻译特定章节
+manzh translate ls -s 1
+
+# 使用指定翻译服务
+manzh translate grep --service openai
+.fi
+.SH "CONFIG 命令"
+.TP
+.BR "manzh config " "[init|show|add|update|delete|default]"
+.PP
+子命令：
+.TP
+.BR init
+初始化配置文件，创建默认配置。
+.TP
+.BR show
+显示当前配置信息。
+.TP
+.BR add
+添加新的翻译服务。
+.TP
+.BR update
+更新现有翻译服务的配置。
+.TP
+.BR delete
+删除翻译服务。
+.TP
+.BR default
+设置默认翻译服务。
+.PP
+示例：
+.PP
+.nf
+# 初始化配置
+manzh config init
+
+# 显示当前配置
+manzh config show
+
+# 交互式配置管理
+manzh config
+.fi
+.SH "LIST 命令"
+.TP
+.BR "manzh list " "[\-s <章节>]"
+.PP
+参数：
+.TP
+.BR \-s ", " \-\-section " <章节>"
+指定要列出的手册章节（可选）。
+.PP
+示例：
+.PP
+.nf
+# 列出所有已翻译的手册
+manzh list
+
+# 列出特定章节的已翻译手册
+manzh list -s 1
+.fi
+.SH "CLEAN 命令"
+.TP
+.BR "manzh clean " "[命令名称] [\-s <章节>] [\-a]"
+.PP
+参数：
+.TP
+.I <命令名称>
+要清理的命令名称（可选）。
+.TP
+.BR \-s ", " \-\-section " <章节>"
+指定要清理的手册章节（可选）。
+.TP
+.BR \-a ", " \-\-all
+清理所有已翻译的手册。
+.PP
+示例：
+.PP
+.nf
+# 清理特定命令的手册
+manzh clean ls
+
+# 清理所有已翻译的手册
+manzh clean -a
+
+# 清理特定章节的手册
+manzh clean -s 1
+.fi
+.SH "OPTIMIZE 命令"
+.TP
+.BR "manzh optimize " "[\-f <文件>] [\-c <命令>] [\-s <章节>] [\-d <目录>] [\-r] [\-\-debug]"
+.PP
+参数：
+.TP
+.BR \-f ", " \-\-file " <文件>"
+指定要优化的单个手册文件路径。
+.TP
+.BR \-c ", " \-\-command " <命令>"
+指定要优化的命令名称。
+.TP
+.BR \-s ", " \-\-section " <章节>"
+指定手册章节号。
+.TP
+.BR \-d ", " \-\-dir " <目录>"
+指定手册目录路径。
+.TP
+.BR \-r ", " \-\-recursive
+递归处理子目录。
+.TP
+.BR \-\-debug
+启用详细调试输出。
+.PP
+示例：
+.PP
+.nf
+# 优化特定命令的手册
+manzh optimize -c conda -s 1
+
+# 优化指定目录下的所有手册
+manzh optimize -d /usr/local/share/man/zh_CN -r
+
+# 优化单个手册文件
+manzh optimize -f /usr/local/share/man/zh_CN/man1/conda.1
+.fi
+.SH 交互式界面
+直接运行
+.B manzh
+不带任何参数将启动交互式菜单界面，用户可以通过数字选择执行不同的功能。
+.SH 翻译结果
+翻译后的手册将保存在：
+.PP
+.B /usr/local/share/man/zh_CN/man<章节号>/
+.PP
+查看翻译后的手册：
+.PP
+.nf
+# 使用 -M 参数指定手册目录
+man -M /usr/local/share/man/zh_CN <命令>
+
+# 或设置 MANPATH 环境变量
+export MANPATH=/usr/local/share/man/zh_CN:$MANPATH
+man <命令>
+.fi
+.SH 配置文件
+manzh使用以下配置文件：
+.TP
+.I ~/.config/manzh/config.json
+主配置文件，包含翻译服务设置。
+.SH 注意事项
+.IP \[bu] 2
+需要具有root或sudo权限来将翻译结果保存到系统手册目录。
+.IP \[bu] 2
+翻译质量取决于所选用的翻译服务及其API限制。
+.IP \[bu] 2
+部分翻译服务可能需要付费API密钥。
+.IP \[bu] 2
+在配置文件中请勿泄露敏感的API密钥信息。
+.SH 高级用法
+.SS 批量翻译
+创建脚本批量翻译常用命令：
+.PP
+.nf
+#!/bin/bash
+COMMANDS=(
+  "ls" "cd" "grep" "find" "awk" "sed"
+)
+
+for cmd in "${COMMANDS[@]}"; do
+  echo "正在翻译: $cmd"
+  manzh translate "$cmd"
+  echo "-------------------"
+done
+.fi
+.SS 集成到系统man命令
+在~/.bashrc或~/.zshrc中添加以下函数：
+.PP
+.nf
+# 优先使用中文手册，如果没有则使用英文手册
+function man() {
+  LANG=zh_CN command man -M /usr/local/share/man/zh_CN "$@" 2>/dev/null || command man "$@"
+}
+.fi
+.SH 平台支持
+.SS macOS
+使用man -M选项查看翻译后的手册。需要安装groff支持：
+.PP
+.nf
+brew install groff
+.fi
+.SS Linux
+直接支持man -M和MANPATH设置。支持主流发行版（Ubuntu、Debian、CentOS等）。
+.SH 相关文件
+.TP
+.I /usr/local/share/man/zh_CN/
+默认中文手册保存目录
+.TP
+.I ~/.config/manzh/
+配置文件目录
+.SH 作者
+.MT \-
+cynning
+.ME
+.SH 版本
+manzh 2.1.0
+.SH 许可证
+MIT

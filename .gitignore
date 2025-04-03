@@ -35,6 +35,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+debug*
 
 # 环境和IDE文件
 .env
@@ -62,11 +63,21 @@ tests/unit/test_config.json
 demo_output/
 .manzh_history
 *.log
+conda.1
 
 # 本地测试和调试文件
 demo.py
 demo_*.py
 demo_*.sh
+
+# 所有测试相关文件
+test_*.py
+*_test.py
+test_*.sh
+*_test.sh
+test_man.*
+test_*.1
+create_test_file.py
 
 # 缓存和临时文件
 ~/.cache/manzh/
