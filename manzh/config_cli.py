@@ -849,160 +849,115 @@ def add_openrouter_service(services: Dict[str, Any]) -> bool:
     services["openrouter"] = service_config
     return True
 
-def interactive_init_config() -> None:
-    """交互式初始化配置文件"""
-    print("\n=== ManZH 配置初始化 ===")
-    sys.stdout.flush()
-    print("这将帮助您创建一个新的配置文件。")
-    sys.stdout.flush()
+def update_shell_config(man_dir: str) -> None:
+    """更新shell配置文件中的MANPATH"""
+    # 确定shell类型和配置文件路径
+    shell = os.environ.get("SHELL", "")
+    home = os.path.expanduser("~")
     
-    config: Dict[str, Any] = {
+    if "zsh" in shell:
+        config_file = os.path.join(home, ".zshrc")
+    else:  # 默认使用bash
+        config_file = os.path.join(home, ".bashrc")
+    
+    # 构建MANPATH配置行
+    man_path_line = f'\nexport MANPATH="{man_dir}:$MANPATH"\n'
+    
+    try:
+        # 检查配置是否已存在
+        if os.path.exists(config_file):
+            with open(config_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+                if man_dir in content:
+                    print(f"\nMANPATH配置已存在于{config_file}中")
+                    return
+        
+        # 添加配置
+        with open(config_file, 'a', encoding='utf-8') as f:
+            f.write(man_path_line)
+        print(f"\nMANPATH配置已添加到{config_file}")
+        print("请运行以下命令使配置生效：")
+        if "zsh" in shell:
+            print("source ~/.zshrc")
+        else:
+            print("source ~/.bashrc")
+    except Exception as e:
+        print(f"\n更新shell配置文件失败: {str(e)}")
+
+def interactive_init_config() -> None:
+    """交互式初始化配置"""
+    print("\n=== ManZH 配置初始化 ===")
+    
+    config = {
         "services": {},
-        "translation": {
-            "chunk_size": 4000,
-            "max_workers": 2,
-            "rate_limit_delay": 2.0,
-            "max_retries": 3,
-            "timeout": 60
-        },
+        "output": {},
         "cache": {
             "enabled": True,
-            "dir": os.path.expanduser("~/.cache/manzh/translations")
-        },
-        "output": {
-            "temp_dir": os.path.expanduser("~/.cache/manzh/temp"),
-            "man_dir": "/usr/local/share/man/zh_CN"
+            "dir": os.path.expanduser("~/.manzh/cache")
         }
     }
     
-    # 选择默认服务
+    # 选择翻译服务
     print("\n可用的翻译服务：")
-    sys.stdout.flush()
-    print("1. DeepSeek (推荐，支持缓存和长文本)")
-    sys.stdout.flush()
-    print("2. Gemini")
-    sys.stdout.flush()
-    print("3. Ollama (本地部署)")
-    sys.stdout.flush()
-    print("4. Silicon Flow")
-    sys.stdout.flush()
-    print("5. OpenRouter (支持多种商业模型)")
-    sys.stdout.flush()
-    print("6. OpenAI 兼容接口")
-    sys.stdout.flush()
-    print("0. 退出配置")
-    sys.stdout.flush()
-    
-    service_map = {
-        '1': ('deepseek', add_deepseek_service),
-        '2': ('gemini', add_gemini_service),
-        '3': ('ollama', add_ollama_service),
-        '4': ('siliconflow', add_siliconflow_service),
-        '5': ('openrouter', add_openrouter_service),
-        '6': ('openai_compatible', add_openai_compatible_service)
-    }
+    print("1) DeepSeek")
+    print("2) Gemini")
+    print("3) Ollama")
+    print("4) Silicon Flow")
+    print("5) OpenRouter")
+    print("6) OpenAI兼容接口")
     
     while True:
-        choice = input("\n请选择要添加的翻译服务 (0-6): ").strip()
-        sys.stdout.flush()
-        if choice == '0':
-            print("\n配置已取消")
-            sys.stdout.flush()
-            sys.exit(0)
-        if choice not in service_map:
-            print("无效的选择，请重试。")
-            sys.stdout.flush()
-            continue
-            
-        service_name, add_func = service_map[choice]
-        if add_func(config["services"]):
-            # 如果这是第一个添加的服务，询问是否设置为默认服务
-            if not config.get("default_service"):
-                set_default = input(f"\n是否将 {service_name} 设置为默认服务？(Y/n): ").strip().lower()
-                sys.stdout.flush()
-                if set_default != 'n':
-                    config["default_service"] = service_name
-                    print(f"\n已将 {service_name} 设置为默认服务")
-                    sys.stdout.flush()
+        choice = input("\n请选择要添加的翻译服务 [1-6]: ").strip()
+        if choice == "1":
+            if add_deepseek_service(config["services"]):
+                config["default_service"] = "deepseek"
+            break
+        elif choice == "2":
+            if add_gemini_service(config["services"]):
+                config["default_service"] = "gemini"
+            break
+        elif choice == "3":
+            if add_ollama_service(config["services"]):
+                config["default_service"] = "ollama"
+            break
+        elif choice == "4":
+            if add_siliconflow_service(config["services"]):
+                config["default_service"] = "siliconflow"
+            break
+        elif choice == "5":
+            if add_openrouter_service(config["services"]):
+                config["default_service"] = "openrouter"
+            break
+        elif choice == "6":
+            if add_openai_compatible_service(config["services"]):
+                config["default_service"] = "openai_compatible"
             break
         else:
-            print("\n服务添加失败，请重试或选择其他服务。")
-            sys.stdout.flush()
+            print("请选择有效的选项")
     
-    # 配置翻译参数
-    print("\n=== 翻译参数配置 ===")
-    sys.stdout.flush()
-    print("（按回车使用默认值，输入 'q' 或 'quit' 退出配置）")
-    sys.stdout.flush()
+    # 设置输出目录
+    print("\n设置man手册输出目录")
+    default_man_dir = os.path.expanduser("~/.manzh/man/zh_CN")
+    man_dir = input(f"请输入目录路径 (默认: {default_man_dir}): ").strip() or default_man_dir
     
-    chunk_size = input("每个翻译块的大小 (默认: 4000): ").strip()
-    sys.stdout.flush()
-    if chunk_size.lower() in ['q', 'quit']:
-        print("\n配置已取消")
-        sys.stdout.flush()
-        sys.exit(0)
-    if chunk_size.isdigit():
-        config["translation"]["chunk_size"] = int(chunk_size)
-    
-    max_workers = input("并行翻译线程数 (默认: 2): ").strip()
-    sys.stdout.flush()
-    if max_workers.lower() in ['q', 'quit']:
-        print("\n配置已取消")
-        sys.stdout.flush()
-        sys.exit(0)
-    if max_workers.isdigit():
-        config["translation"]["max_workers"] = int(max_workers)
-    
-    delay = input("请求间隔时间(秒) (默认: 2.0): ").strip()
-    sys.stdout.flush()
-    if delay.lower() in ['q', 'quit']:
-        print("\n配置已取消")
-        sys.stdout.flush()
-        sys.exit(0)
-    if delay and delay.replace('.', '').isdigit():
-        config["translation"]["rate_limit_delay"] = float(delay)
-    
-    # 配置缓存
-    print("\n=== 缓存配置 ===")
-    sys.stdout.flush()
-    cache_enabled = input("是否启用翻译缓存？(Y/n): ").strip().lower()
-    sys.stdout.flush()
-    if cache_enabled in ['q', 'quit']:
-        print("\n配置已取消")
-        sys.stdout.flush()
-        sys.exit(0)
-    config["cache"]["enabled"] = cache_enabled != 'n'
-    
-    if config["cache"]["enabled"]:
-        cache_dir = input(f"缓存目录 (默认: {config['cache']['dir']}): ").strip()
-        sys.stdout.flush()
-        if cache_dir.lower() in ['q', 'quit']:
-            print("\n配置已取消")
-            sys.stdout.flush()
-            sys.exit(0)
-        if cache_dir:
-            config["cache"]["dir"] = os.path.expanduser(cache_dir)
-    
-    # 配置输出
-    print("\n=== 输出配置 ===")
-    sys.stdout.flush()
-    temp_dir = input(f"临时文件目录 (默认: {config['output']['temp_dir']}): ").strip()
-    sys.stdout.flush()
-    if temp_dir.lower() in ['q', 'quit']:
-        print("\n配置已取消")
-        sys.stdout.flush()
-        sys.exit(0)
-    if temp_dir:
-        config["output"]["temp_dir"] = os.path.expanduser(temp_dir)
-    
-    man_dir = input(f"man手册目录 (默认: {config['output']['man_dir']}): ").strip()
-    sys.stdout.flush()
     if man_dir.lower() in ['q', 'quit']:
         print("\n配置已取消")
         sys.stdout.flush()
         sys.exit(0)
-    if man_dir:
-        config["output"]["man_dir"] = os.path.expanduser(man_dir)
+    
+    man_dir = os.path.expanduser(man_dir)
+    config["output"]["man_dir"] = man_dir
+    
+    # 询问是否更新shell配置
+    while True:
+        update_shell = input("\n是否将翻译后的man手册路径添加到shell配置文件中？(Y/n): ").strip().lower()
+        if update_shell in ['', 'y', 'yes']:
+            update_shell_config(man_dir)
+            break
+        elif update_shell in ['n', 'no']:
+            print("\n您可以稍后手动添加以下行到shell配置文件中：")
+            print(f'export MANPATH="{man_dir}:$MANPATH"')
+            break
     
     # 保存配置
     config_path = get_default_config_path()
