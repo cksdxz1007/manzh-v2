@@ -79,6 +79,11 @@ test_man.*
 test_*.1
 create_test_file.py
 
+# Node.js相关文件
+node_modules/
+package.json
+package-lock.json
+
 # 缓存和临时文件
 ~/.cache/manzh/
 /tmp/
