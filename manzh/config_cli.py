@@ -903,7 +903,7 @@ def interactive_init_config() -> None:
     }
     
     while True:
-        choice = input("\n请选择默认翻译服务 (0-6): ").strip()
+        choice = input("\n请选择要添加的翻译服务 (0-6): ").strip()
         sys.stdout.flush()
         if choice == '0':
             print("\n配置已取消")
@@ -916,7 +916,14 @@ def interactive_init_config() -> None:
             
         service_name, add_func = service_map[choice]
         if add_func(config["services"]):
-            config["default_service"] = service_name
+            # 如果这是第一个添加的服务，询问是否设置为默认服务
+            if not config.get("default_service"):
+                set_default = input(f"\n是否将 {service_name} 设置为默认服务？(Y/n): ").strip().lower()
+                sys.stdout.flush()
+                if set_default != 'n':
+                    config["default_service"] = service_name
+                    print(f"\n已将 {service_name} 设置为默认服务")
+                    sys.stdout.flush()
             break
         else:
             print("\n服务添加失败，请重试或选择其他服务。")
