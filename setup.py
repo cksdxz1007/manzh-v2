@@ -73,7 +73,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="manzh",
-    version="1.0.5",  # 更新版本号以匹配man手册中的版本
+    version="1.0.6",  # 更新版本号以匹配man手册中的版本
     author="cynning",
     author_email="cynningli@gmail.com",
     description="Man手册中文翻译工具",
