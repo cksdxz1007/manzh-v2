@@ -73,8 +73,8 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="manzh",
-    version="1.0.7",
-    author="cynning",
+    version="1.0.8",
+    author="Cynning Li",
     author_email="cynningli@gmail.com",
     description="Man手册中文翻译工具",
     long_description=long_description,
