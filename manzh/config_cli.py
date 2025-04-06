@@ -601,11 +601,7 @@ def interactive_delete_service(config_path=None):
         # 选择要删除的服务
         while True:
             try:
-                choice = input("\n请选择要删除的服务 [0-{}] (输入q返回主菜单): ".format(len(services))).strip()
-                
-                if choice.lower() == "q":
-                    print("\n返回主菜单...")
-                    return False
+                choice = input("\n请选择要删除的服务 [0-{}]: ".format(len(services))).strip()
                 
                 if choice == "0":
                     return
@@ -690,11 +686,7 @@ def interactive_set_default(config_path=None):
         # 选择新的默认服务
         while True:
             try:
-                choice = input("\n请选择新的默认服务 [0-{}] (输入q返回主菜单): ".format(len(services))).strip()
-                
-                if choice.lower() == "q":
-                    print("\n返回主菜单...")
-                    return False
+                choice = input("\n请选择新的默认服务 [0-{}]: ".format(len(services))).strip()
                 
                 if choice == "0":
                     return
@@ -849,40 +841,73 @@ def add_openrouter_service(services: Dict[str, Any]) -> bool:
     services["openrouter"] = service_config
     return True
 
-def update_shell_config(man_dir: str) -> None:
-    """更新shell配置文件中的MANPATH"""
-    # 确定shell类型和配置文件路径
-    shell = os.environ.get("SHELL", "")
-    home = os.path.expanduser("~")
+def update_shell_config(man_dir: str) -> bool:
+    """
+    更新shell配置文件，添加MANPATH和LANG设置
     
-    if "zsh" in shell:
-        config_file = os.path.join(home, ".zshrc")
-    else:  # 默认使用bash
-        config_file = os.path.join(home, ".bashrc")
-    
-    # 构建MANPATH配置行
-    man_path_line = f'\nexport MANPATH="{man_dir}:$MANPATH"\n'
-    
-    try:
-        # 检查配置是否已存在
-        if os.path.exists(config_file):
-            with open(config_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                if man_dir in content:
-                    print(f"\nMANPATH配置已存在于{config_file}中")
-                    return
+    Args:
+        man_dir: man手册目录路径
         
-        # 添加配置
-        with open(config_file, 'a', encoding='utf-8') as f:
-            f.write(man_path_line)
-        print(f"\nMANPATH配置已添加到{config_file}")
-        print("请运行以下命令使配置生效：")
-        if "zsh" in shell:
-            print("source ~/.zshrc")
+    Returns:
+        bool: 是否更新成功
+    """
+    try:
+        # 检测shell类型
+        shell = os.environ.get('SHELL', '')
+        if 'zsh' in shell:
+            rc_file = os.path.expanduser('~/.zshrc')
+            shell_name = 'zsh'
+        elif 'bash' in shell:
+            rc_file = os.path.expanduser('~/.bashrc')
+            shell_name = 'bash'
         else:
-            print("source ~/.bashrc")
+            print(f"未知的shell类型: {shell}")
+            return False
+            
+        # 准备要添加的配置
+        config_lines = [
+            f'\n# ManZH配置',
+            f'export MANPATH="{man_dir}:$MANPATH"',
+            'export LANG=zh_CN.UTF-8',
+            '\n# 添加中文man命令别名',
+            'if [[ "$(uname)" == "Darwin" ]]; then',
+            f'    # macOS配置',
+            f'    alias cman=\'LANG=zh_CN.UTF-8 man -M {man_dir}\'',
+            'else',
+            '    # Linux配置',
+            '    alias cman=\'LANG=zh_CN.UTF-8 man -L zh_CN\'',
+            'fi',
+            '\n# 重定义man命令，优先使用中文手册',
+            'man() {',
+            '    if [[ "$(uname)" == "Darwin" ]]; then',
+            f'        LANG=zh_CN.UTF-8 command man -M {man_dir} "$@" 2>/dev/null || command man "$@"',
+            '    else',
+            '        LANG=zh_CN.UTF-8 command man -L zh_CN "$@" 2>/dev/null || command man "$@"',
+            '    fi',
+            '}\n'
+        ]
+        
+        # 检查配置是否已存在
+        with open(rc_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+        if 'ManZH配置' in content:
+            print(f"\n配置已存在于 {rc_file}")
+            return True
+            
+        # 添加配置到文件末尾
+        with open(rc_file, 'a', encoding='utf-8') as f:
+            f.write('\n'.join(config_lines))
+            
+        print(f"\n配置已添加到 {rc_file}")
+        print(f"请运行以下命令使配置生效：")
+        print(f"source {rc_file}")
+        
+        return True
+        
     except Exception as e:
-        print(f"\n更新shell配置文件失败: {str(e)}")
+        print(f"更新shell配置失败: {str(e)}")
+        return False
 
 def interactive_init_config() -> None:
     """交互式初始化配置"""
@@ -937,7 +962,11 @@ def interactive_init_config() -> None:
     
     # 设置输出目录
     print("\n设置man手册输出目录")
-    default_man_dir = os.path.expanduser("~/.manzh/man/zh_CN")
+    if sys.platform == "darwin":  # macOS
+        default_man_dir = "/usr/local/share/man/zh_CN"
+    else:  # Linux
+        default_man_dir = "/usr/share/man/zh_CN"
+    
     man_dir = input(f"请输入目录路径 (默认: {default_man_dir}): ").strip() or default_man_dir
     
     if man_dir.lower() in ['q', 'quit']:
@@ -952,11 +981,17 @@ def interactive_init_config() -> None:
     while True:
         update_shell = input("\n是否将翻译后的man手册路径添加到shell配置文件中？(Y/n): ").strip().lower()
         if update_shell in ['', 'y', 'yes']:
-            update_shell_config(man_dir)
+            if update_shell_config(man_dir):
+                print("\nshell配置已更新")
             break
         elif update_shell in ['n', 'no']:
             print("\n您可以稍后手动添加以下行到shell配置文件中：")
             print(f'export MANPATH="{man_dir}:$MANPATH"')
+            print('export LANG=zh_CN.UTF-8')
+            if sys.platform == "darwin":
+                print(f'alias cman=\'LANG=zh_CN.UTF-8 man -M {man_dir}\'')
+            else:
+                print('alias cman=\'LANG=zh_CN.UTF-8 man -L zh_CN\'')
             break
     
     # 保存配置

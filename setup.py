@@ -73,9 +73,9 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="manzh",
-    version="1.0.8",
+    version="1.0.9",
     author="Cynning Li",
-    author_email="cynningli@gmail.com",
+    author_email="me@cynning.uk",
     description="Man手册中文翻译工具",
     long_description=long_description,
     long_description_content_type="text/markdown",

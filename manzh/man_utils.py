@@ -382,9 +382,13 @@ def save_man_page(content, command, section="1", output_dir=None):
                 print(f"创建输出目录: {output_dir}")
                 sys.stdout.flush()
             except PermissionError:
-                print(f"无权限创建目录: {output_dir}，尝试使用sudo")
+                print(f"无权限创建目录: {output_dir}")
                 sys.stdout.flush()
-                subprocess.run(['sudo', 'mkdir', '-p', output_dir], check=True)
+                if input("是否使用sudo创建目录？(Y/n): ").lower() != 'n':
+                    subprocess.run(['sudo', 'mkdir', '-p', output_dir], check=True)
+                else:
+                    print("已取消操作")
+                    return False
                 
         # 创建章节目录
         section_dir = os.path.join(output_dir, f"man{section}")
@@ -395,9 +399,13 @@ def save_man_page(content, command, section="1", output_dir=None):
             try:
                 os.makedirs(section_dir, exist_ok=True)
             except PermissionError:
-                print(f"无权限创建目录: {section_dir}，尝试使用sudo")
+                print(f"无权限创建目录: {section_dir}")
                 sys.stdout.flush()
-                subprocess.run(['sudo', 'mkdir', '-p', section_dir], check=True)
+                if input("是否使用sudo创建目录？(Y/n): ").lower() != 'n':
+                    subprocess.run(['sudo', 'mkdir', '-p', section_dir], check=True)
+                else:
+                    print("已取消操作")
+                    return False
         
         # 保存文件
         target_file = os.path.join(section_dir, f"{command}.{section}")
@@ -411,22 +419,25 @@ def save_man_page(content, command, section="1", output_dir=None):
             print(f"已保存翻译结果到：{target_file}")
             sys.stdout.flush()
         else:
-            print(f"无权限写入目录: {section_dir}，尝试使用sudo")
+            print(f"无权限写入目录: {section_dir}")
             sys.stdout.flush()
-            
-            # 先保存到临时文件
-            temp_file = os.path.join('/tmp', f"{command}.{section}.temp")
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                f.write(content)
-            
-            # 使用sudo复制
-            subprocess.run(['sudo', 'cp', temp_file, target_file], check=True)
-            subprocess.run(['sudo', 'chmod', '644', target_file], check=True)
-            print(f"已使用sudo保存翻译结果到：{target_file}")
-            sys.stdout.flush()
-            
-            # 清理临时文件
-            os.remove(temp_file)
+            if input("是否使用sudo保存文件？(Y/n): ").lower() != 'n':
+                # 先保存到临时文件
+                temp_file = os.path.join('/tmp', f"{command}.{section}.temp")
+                with open(temp_file, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                
+                # 使用sudo复制
+                subprocess.run(['sudo', 'cp', temp_file, target_file], check=True)
+                subprocess.run(['sudo', 'chmod', '644', target_file], check=True)
+                print(f"已使用sudo保存翻译结果到：{target_file}")
+                sys.stdout.flush()
+                
+                # 清理临时文件
+                os.remove(temp_file)
+            else:
+                print("已取消操作")
+                return False
         
         return True
     except subprocess.CalledProcessError as e:

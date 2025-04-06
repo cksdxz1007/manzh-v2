@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "manzh"
-version = "1.0.8"
+version = "1.0.9"
 description = "Man手册中文翻译工具"
 readme = "README.md"
 authors = [
-    {name = "cynning", email = "cynningli@gmail.com"}
+    {name = "cynning", email = "me@cynning.uk"}
 ]
 license = "MIT"
 requires-python = ">=3.6"
