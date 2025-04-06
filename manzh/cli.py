@@ -2,6 +2,7 @@ import sys
 import argparse
 import os
 import subprocess
+import argcomplete
 from .translate import TranslationQueue, create_translation_service
 from .config_manager import load_config
 from .man_utils import get_man_page, get_help_output, save_man_page
@@ -50,6 +51,13 @@ def create_parser():
     optimize_parser.add_argument("-d", "--dir", help="手册目录路径")
     optimize_parser.add_argument("-r", "--recursive", action="store_true", help="递归处理子目录")
     optimize_parser.add_argument("--debug", action="store_true", help="启用详细调试输出")
+    
+    # completion命令
+    completion_parser = subparsers.add_parser("completion", help="安装命令行自动补全")
+    completion_parser.add_argument("--manual", action="store_true", help="只显示手动安装说明")
+    
+    # 启用argcomplete补全
+    argcomplete.autocomplete(parser)
     
     return parser
 
@@ -419,6 +427,23 @@ def main():
             interactive_clean()
         elif args.command == "optimize":
             optimize_command(args)
+        elif args.command == "completion":
+            # 导入并运行自动补全安装
+            try:
+                from .completion import main as completion_main
+                if hasattr(args, 'manual'):
+                    completion_main(args)
+                else:
+                    # 创建一个新的命名空间对象，因为当前args对象没有manual属性
+                    import argparse
+                    completion_args = argparse.Namespace(manual=False)
+                    completion_main(completion_args)
+            except Exception as e:
+                print(f"安装自动补全时出错: {str(e)}")
+                sys.stdout.flush()
+                if debug_mode:
+                    import traceback
+                    traceback.print_exc()
         else:
             print(f"不支持的命令: {args.command}")
             sys.stdout.flush()
