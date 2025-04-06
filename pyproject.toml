@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "manzh"
-version = "1.1.1"
+version = "1.1.2"
 description = "Man手册中文翻译工具"
 readme = "README.md"
 authors = [

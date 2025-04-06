@@ -55,14 +55,15 @@ def setup_zsh_completion():
         if not os.path.exists(completion_dir):
             os.makedirs(completion_dir, exist_ok=True)
             
-        # 创建补全脚本
+        # 创建补全脚本 - 直接使用Python模块
         completion_script = os.path.join(completion_dir, "_manzh")
         with open(completion_script, "w") as f:
             f.write("# manzh 命令自动补全\n")
             f.write("if type compdef &>/dev/null; then\n")
             f.write("  autoload -U bashcompinit\n")
             f.write("  bashcompinit\n")
-            f.write("  eval \"$(register-python-argcomplete manzh)\"\n")
+            # 使用python -m argcomplete 代替 register-python-argcomplete
+            f.write("  eval \"$(python -m argcomplete.bash_completion manzh)\"\n")
             f.write("fi\n")
             
         # 检查zshrc中是否已有配置
@@ -98,7 +99,8 @@ def setup_bash_completion():
         with open(completion_script, "w") as f:
             f.write("#!/bin/bash\n")
             f.write("# manzh 命令自动补全\n")
-            f.write("eval \"$(register-python-argcomplete manzh)\"\n")
+            # 使用python -m argcomplete 代替 register-python-argcomplete
+            f.write("eval \"$(python -m argcomplete.bash_completion manzh)\"\n")
             
         # 添加执行权限
         os.chmod(completion_script, 0o755)
@@ -176,7 +178,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="manzh",
-    version="1.1.1",
+    version="1.1.2",
     author="Cynning Li",
     author_email="me@cynning.uk",
     description="Man手册中文翻译工具",
