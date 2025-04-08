@@ -1,8 +1,9 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
+
 # 项目代码保护规则
 
 这个规则用于防止AI在添加新功能时擅自修改已完成的功能代码。如果需要修改现有代码，AI必须先询问确认。

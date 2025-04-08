@@ -91,3 +91,4 @@ package-lock.json
 ~/.cache/manzh/
 /tmp/
 *.tmp 
+.cursor/rules/protect.mdc
