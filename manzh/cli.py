@@ -10,6 +10,7 @@ from .list_manuals import list_manuals
 from .clean import interactive_clean
 from .config_cli import interactive_config, show_config, interactive_init_config
 from .optimize import optimize_command, interactive_optimize
+from .example import example_command, interactive_example
 
 # 设置环境变量确保输出不缓冲
 os.environ["PYTHONUNBUFFERED"] = "1"
@@ -51,6 +52,11 @@ def create_parser():
     optimize_parser.add_argument("-d", "--dir", help="手册目录路径")
     optimize_parser.add_argument("-r", "--recursive", action="store_true", help="递归处理子目录")
     optimize_parser.add_argument("--debug", action="store_true", help="启用详细调试输出")
+    
+    # example命令 - 新增
+    example_parser = subparsers.add_parser("example", help="查询命令示例用法")
+    example_parser.add_argument("command_name", metavar="command", help="要查询的命令名称")
+    example_parser.add_argument("-d", "--debug", action="store_true", help="启用详细调试输出")
     
     # completion命令
     completion_parser = subparsers.add_parser("completion", help="安装命令行自动补全")
@@ -369,10 +375,12 @@ def main():
             sys.stdout.flush()
             print("5. 优化已翻译手册")
             sys.stdout.flush()
-            print("6. 退出程序")
+            print("6. 查询命令示例用法")
+            sys.stdout.flush()
+            print("7. 退出程序")
             sys.stdout.flush()
             
-            choice = input("\n请选择操作 [1-6]: ").strip()
+            choice = input("\n请选择操作 [1-7]: ").strip()
             
             if choice == "1":
                 command = input("请输入要翻译的命令名称：").strip()
@@ -401,6 +409,9 @@ def main():
                 interactive_optimize()
                 
             elif choice == "6":
+                interactive_example()
+                
+            elif choice == "7":
                 print("退出程序")
                 sys.stdout.flush()
                 break
@@ -427,6 +438,8 @@ def main():
             interactive_clean()
         elif args.command == "optimize":
             optimize_command(args)
+        elif args.command == "example":
+            example_command(args)
         elif args.command == "completion":
             # 导入并运行自动补全安装
             try:

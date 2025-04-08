@@ -51,77 +51,81 @@ def setup_auto_completion():
 def setup_zsh_completion():
     """设置Zsh自动补全"""
     try:
-        completion_dir = os.path.expanduser("~/.zsh/completion")
-        if not os.path.exists(completion_dir):
-            os.makedirs(completion_dir, exist_ok=True)
+        # 生成补全脚本到独立文件
+        completion_script_path = os.path.expanduser("~/.manzh-complete")
+        
+        try:
+            completion_content = subprocess.check_output(
+                ["register-python-argcomplete", "manzh"], 
+                stderr=subprocess.DEVNULL, 
+                text=True
+            )
             
-        # 创建补全脚本 - 直接使用Python模块
-        completion_script = os.path.join(completion_dir, "_manzh")
-        with open(completion_script, "w") as f:
-            f.write("# manzh 命令自动补全\n")
-            f.write("if type compdef &>/dev/null; then\n")
-            f.write("  autoload -U bashcompinit\n")
-            f.write("  bashcompinit\n")
-            # 使用python -m argcomplete 代替 register-python-argcomplete
-            f.write("  eval \"$(python -m argcomplete.bash_completion manzh)\"\n")
-            f.write("fi\n")
-            
+            with open(completion_script_path, "w") as f:
+                f.write(completion_content)
+                
+        except Exception as e:
+            print(f"生成补全脚本时出错: {str(e)}")
+            print("您可以手动运行 'manzh completion' 来安装命令行自动补全")
+            return False
+        
         # 检查zshrc中是否已有配置
         rc_file = os.path.expanduser("~/.zshrc")
         if os.path.exists(rc_file):
             with open(rc_file, "r") as f:
                 content = f.read()
                 
-            if "manzh 自动补全" not in content:
+            if "manzh 自动补全" not in content and "manzh-complete" not in content:
                 with open(rc_file, "a") as f:
-                    f.write("\n# manzh 自动补全\n")
-                    f.write("fpath=(~/.zsh/completion $fpath)\n")
-                    f.write("autoload -U compinit\n")
-                    f.write("compinit\n")
-                    f.write(f"source {completion_script}\n")
+                    f.write("\n# manzh 自动补全配置\n")
+                    f.write("autoload -U bashcompinit\n")
+                    f.write("bashcompinit\n")
+                    f.write(f"source {completion_script_path}\n")
         
         print("Zsh补全已配置，请运行 'source ~/.zshrc' 使其生效")
         return True
     except Exception as e:
         print(f"设置Zsh补全时出错: {str(e)}")
+        print("您可以手动运行 'manzh completion' 来安装命令行自动补全")
         return False
 
 def setup_bash_completion():
     """设置Bash自动补全"""
     try:
-        # 检查补全目录是否存在
-        completion_dir = os.path.expanduser("~/.bash_completion.d")
-        if not os.path.exists(completion_dir):
-            os.makedirs(completion_dir, exist_ok=True)
-            
-        # 创建补全脚本
-        completion_script = os.path.join(completion_dir, "manzh.sh")
-        with open(completion_script, "w") as f:
-            f.write("#!/bin/bash\n")
-            f.write("# manzh 命令自动补全\n")
-            # 使用python -m argcomplete 代替 register-python-argcomplete
-            f.write("eval \"$(python -m argcomplete.bash_completion manzh)\"\n")
-            
-        # 添加执行权限
-        os.chmod(completion_script, 0o755)
+        # 生成补全脚本到独立文件
+        completion_script_path = os.path.expanduser("~/.manzh-complete")
         
+        try:
+            completion_content = subprocess.check_output(
+                ["register-python-argcomplete", "manzh"], 
+                stderr=subprocess.DEVNULL, 
+                text=True
+            )
+            
+            with open(completion_script_path, "w") as f:
+                f.write(completion_content)
+                
+        except Exception as e:
+            print(f"生成补全脚本时出错: {str(e)}")
+            print("您可以手动运行 'manzh completion' 来安装命令行自动补全")
+            return False
+            
         # 检查bashrc中是否已有配置
         rc_file = os.path.expanduser("~/.bashrc")
         if os.path.exists(rc_file):
             with open(rc_file, "r") as f:
                 content = f.read()
                 
-            if "manzh 自动补全" not in content:
+            if "manzh 自动补全" not in content and "manzh-complete" not in content:
                 with open(rc_file, "a") as f:
-                    f.write("\n# manzh 自动补全\n")
-                    f.write(f"if [ -f {completion_script} ]; then\n")
-                    f.write(f"    source {completion_script}\n")
-                    f.write("fi\n")
+                    f.write("\n# manzh 自动补全配置\n")
+                    f.write("[ -f ~/.manzh-complete ] && source ~/.manzh-complete\n")
         
         print("Bash补全已配置，请运行 'source ~/.bashrc' 使其生效")
         return True
     except Exception as e:
         print(f"设置Bash补全时出错: {str(e)}")
+        print("您可以手动运行 'manzh completion' 来安装命令行自动补全")
         return False
 
 class PostInstallCommand(install):
@@ -178,7 +182,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="manzh",
-    version="1.1.2",
+    version="1.1.3",
     author="Cynning Li",
     author_email="me@cynning.uk",
     description="Man手册中文翻译工具",

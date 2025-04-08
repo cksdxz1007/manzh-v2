@@ -1,11 +1,11 @@
 Metadata-Version: 2.4
 Name: manzh
-Version: 1.0.8
+Version: 1.1.3
 Summary: Man手册中文翻译工具
 Home-page: https://github.com/cksdxz1007/ManZH
 Author: Cynning Li
-Author-email: cynning <cynningli@gmail.com>
-License-Expression: MIT
+Author-email: cynning <me@cynning.uk>
+License: MIT
 Project-URL: Homepage, https://github.com/cksdxz1007/ManZH
 Classifier: Development Status :: 5 - Production/Stable
 Classifier: Environment :: Console
@@ -31,6 +31,8 @@ Requires-Dist: google-generativeai>=0.3.2
 Requires-Dist: pytest>=7.4.0
 Requires-Dist: pytest-cov>=4.1.0
 Requires-Dist: typing-extensions>=4.5.0
+Requires-Dist: rich>=13.6.0
+Requires-Dist: argcomplete>=1.10.0
 Requires-Dist: importlib-metadata>=1.0; python_version < "3.8"
 Dynamic: author
 Dynamic: home-page

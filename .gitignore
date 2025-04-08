@@ -37,6 +37,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 debug*
+demo*
+fix*
 
 # 环境和IDE文件
 .env

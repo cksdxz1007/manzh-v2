@@ -1,0 +1,43 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 项目代码保护规则
+
+这个规则用于防止AI在添加新功能时擅自修改已完成的功能代码。如果需要修改现有代码，AI必须先询问确认。
+
+## 受保护的核心文件
+
+以下文件包含项目的核心功能，修改时需谨慎并获得确认：
+
+@manzh/translate.py
+@manzh/cli.py
+@manzh/config_manager.py
+@manzh/optimize.py
+@manzh/man_utils.py
+@manzh/completion.py
+@manzh/config_cli.py
+@main.py
+@setup.py
+@run_manzh.py
+@manzh/config.json.example
+@manzh/config.json.example.template
+
+## 指导原则
+
+- 添加新功能时，优先创建新文件或在现有文件中添加新方法，避免修改现有功能代码
+- 如需修改现有功能代码，必须先解释修改原因和预期影响，并获得确认
+- 修改核心功能模块时需特别谨慎，确保向后兼容性
+- 对于配置相关的修改，需确保所有相关文件保持一致
+- 不要删除或修改现有功能，除非明确指示这样做
+
+## 修改核心代码时的提示信息
+
+当尝试修改核心代码时，请先提出以下问题：
+1. 这个修改是否必须涉及现有功能代码？
+2. 是否可以通过添加新文件或新方法实现需求？
+3. 修改后是否会影响现有功能的正常工作？
+4. 这个修改是否与现有代码风格和架构保持一致？
+
+只有在获得明确确认后，才能进行对现有代码的修改。

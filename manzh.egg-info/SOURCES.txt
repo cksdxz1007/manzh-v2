@@ -9,9 +9,11 @@ docs/manzh.1
 manzh/__init__.py
 manzh/clean.py
 manzh/cli.py
+manzh/completion.py
 manzh/config.json.example
 manzh/config_cli.py
 manzh/config_manager.py
+manzh/example.py
 manzh/list_manuals.py
 manzh/man_utils.py
 manzh/optimize.py
