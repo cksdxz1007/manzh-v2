@@ -235,6 +235,58 @@ manzh使用以下配置文件：
 .TP
 .I ~/.config/manzh/config.json
 主配置文件，包含翻译服务设置。
+
+.SH "环境变量"
+.TP
+.B MANZH_CONFIG_DIR
+配置文件目录路径，默认为 ~/.config/manzh/
+.TP
+.B MANZH_DEBUG
+设置为任意非空值启用调试输出
+.TP
+.B MANZH_DEFAULT_SERVICE
+设置默认翻译服务
+.TP
+.B MANZH_CACHE_DIR
+缓存目录路径，默认为 ~/.cache/manzh/
+.TP
+.B MANZH_LOG_LEVEL
+日志级别（DEBUG, INFO, WARNING, ERROR），默认为 INFO
+.TP
+.B MANZH_TIMEOUT
+API 请求超时时间（秒），默认为 30
+.TP
+.B MANZH_RETRY_COUNT
+API 请求重试次数，默认为 3
+.TP
+.B MANZH_BATCH_SIZE
+批量翻译时的批次大小，默认为 5
+
+.SH "退出状态"
+.TP
+.B 0
+成功完成
+.TP
+.B 1
+一般错误（参数错误、文件不存在等）
+.TP
+.B 2
+配置错误（配置文件无效、缺少必要配置等）
+.TP
+.B 3
+API 错误（认证失败、请求超时等）
+.TP
+.B 4
+系统错误（权限不足、磁盘空间不足等）
+.TP
+.B 5
+网络错误（连接失败、DNS 解析失败等）
+.TP
+.B 6
+格式错误（手册格式解析失败等）
+.TP
+.B 7
+中断错误（用户中断、系统信号等）
 .SH 注意事项
 .IP \[bu] 2
 需要具有root或sudo权限来将翻译结果保存到系统手册目录。
